@@ -1,25 +1,19 @@
 # JEBG AI Technologies
 
-Industrial and business solutions, consultancy enquiries and Expert Network applications.
+Website: https://jebg.jamilaexim.com
 
-Forms submit to `/api/submissions` and save in the Sites-managed D1 `DB` binding. Schema is declared in `db/schema.ts`; generated migrations are in `drizzle/` and applied on Sites deployment. No browser database credentials are used.
+GitHub Pages publishes main → /docs. Preserve docs/CNAME and docs/media when updating the page.
 
-`/admin` requires verified Sites/ChatGPT identity with the owner email jamilaexim786vector@gmail.com. It supports searching, filters, contact stages, notes and CSV exports. Signed-in identity headers must come from the hosting dispatcher, never from an untrusted reverse proxy.
+## Form storage
+Customer enquiries and developer applications submit to the existing Google Apps Script web app using a standard form POST with a JSON payload field. Google's confirmation opens in a new tab.
 
-Storage agreement is required. Optional promotional/opportunity consent is unchecked by default and stored with wording, version and timestamp. No automated emails or marketing campaigns are sent by this application. Requests for correction, deletion or consent withdrawal are handled through the published contact email.
+Both form types save in the private **JEBG MAIN** workbook, in **Customer Enquiries** and **Developer Applications** tabs. Review records there; do not put submission records or admin links in this public repository.
 
-The application uses server routes and D1, so it cannot be hosted as a standalone GitHub Pages static website. A custom domain must point to a hosting platform supporting this backend.
+The current backend release is milestone **1.1.1**, deployed as Apps Script version **3**. The prior workbook is preserved as a backup; existing records were copied with their references and consent metadata intact.
 
-Use the Sites build and publication helpers. `npm run db:generate` generates migrations when the schema changes; existing migration files must be preserved.
+## Backend source and checks
+backend/Code.gs and backend/appsscript.json contain the Apps Script source and manifest. Run node tests/backend.test.cjs for isolated checks. See milestones/1.1.1.md for the current release report.
 
-## GitHub Pages publishing
+GitHub merges preserve source but do not automatically redeploy Apps Script. To deploy a backend change, push only the backend source and manifest, create a version, and update the existing deployment. Keep its public endpoint unchanged.
 
-The public marketing page is exported into `docs/`. In **JE7864/JEBG-MAIN-WEBSITE → Settings → Pages**, choose **Deploy from a branch**, **main**, **/docs**, then Save. Set the custom domain to **www.jamilaexim.com** and enable HTTPS when the certificate is ready.
-
-In GoDaddy DNS, the **www CNAME** must target **JE7864.github.io** (not the earlier Sites custom-domain target). Keep USSS, AISA and mail DNS records unchanged. The `docs/CNAME` file records the intended domain; repository Pages settings must still be enabled. Do not point DNS to GitHub until Pages is configured for the domain. A GitHub Pages deployment is not guaranteed permanent; keep this repository and an independent backup.
-
-Form submissions from GitHub Pages and the custom domain are sent to the existing Sites backend at `https://jebg-technologies.jamilaexim786vector.chatgpt.site/api/submissions`. The backend allows only the listed JEBG origins, retains validation/rate controls and does not expose database credentials. Admin sign-in continues at the backend `/admin` URL. GitHub hosts the public pages; database storage and administration still depend on the backend remaining deployed.
-
-After editing `lib/site-html.ts`, run `python scripts/export-github-pages.py` to refresh `docs/index.html`. Preserve the generated `docs/media` asset and `docs/CNAME`. Deploy server changes to Sites separately. The two publishing targets are not automatically synchronized by this repository.
-
-Automatic notification and acknowledgement emails are not configured. Do not place API tokens, passwords, `.env` files or submission records in this public repository.
+No automatic email sending is enabled. Compose email opens the visitor's email application for review and sending.

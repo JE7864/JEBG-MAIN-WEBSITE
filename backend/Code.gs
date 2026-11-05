@@ -1,15 +1,15 @@
-/** JEBG Website Google Sheets backend, v1.1.0.
+/** JEBG Website Google Sheets backend, v1.1.1.
  * Bound to the private JEBG website spreadsheet. No read/list/admin HTTP endpoint.
  * Deploy as a Web app, Execute as Me, access Anyone. Keep the sheet Restricted.
  * No email sending is enabled in this release.
  */
 const JEBG_CONFIG = Object.freeze({
-  spreadsheetId: '1DtPBIHmnrbot9dieZlj5UbWtYD1uFCL9dGUP-yNWef0',
+  spreadsheetId: '1KqIlgyfKgGCdc-ZwRT0NF1f6WeJkKJV7WQ5mSZHHeJQ',
   website: 'https://jebg.jamilaexim.com',
   contact: 'jamilaexim786vector@gmail.com',
   maxDailySubmissions: 500,
   maxPerEmailPerHour: 10,
-  version: '1.1.0'
+  version: '1.1.1'
 });
 const JEBG_CONSENT = {
   customer: 'I would like to receive relevant JEBG product updates and promotional communications by email. I can withdraw this preference at any time.',

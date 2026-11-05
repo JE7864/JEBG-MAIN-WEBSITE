@@ -2,18 +2,20 @@
 
 Website: https://jebg.jamilaexim.com
 
-GitHub Pages publishes main → /docs. Preserve docs/CNAME and docs/media when updating the page.
+GitHub Pages publishes main → /docs. Preserve docs/CNAME and docs/media when updating the public page.
 
-## Form storage
-Customer enquiries and developer applications submit to the existing Google Apps Script web app using a standard form POST with a JSON payload field. Google's confirmation opens in a new tab.
+## Form storage and automatic emails
+Both form types submit a standard POST with a JSON payload field to the existing Google Apps Script web app. A Google confirmation opens in a new tab. Customer enquiries and developer applications save in the private JEBG MAIN workbook.
 
-Both form types save in the private **JEBG MAIN** workbook, in **Customer Enquiries** and **Developer Applications** tabs. Review records there; do not put submission records or admin links in this public repository.
+After a new request is stored, a branded acknowledgement goes to the submitter and a separate internal notification goes to jamilaexim786vector@gmail.com. Each includes the request reference and Shekh Aman signature. Service acknowledgements are separate from optional promotional consent.
 
-The current backend release is milestone **1.1.1**, deployed as Apps Script version **3**. The prior workbook is preserved as a backup; existing records were copied with their references and consent metadata intact.
+Email Notifications tracks recipient-specific Pending, Sending, Sent and Needs review states. The scheduled worker retries Pending items when Google's sending quota is available. Successful sends are not repeated. For uncertain sends, check Sent mail before manually changing Needs review to Pending. Sent means Google accepted the message; inbox delivery is not guaranteed.
 
-## Backend source and checks
-backend/Code.gs and backend/appsscript.json contain the Apps Script source and manifest. Run node tests/backend.test.cjs for isolated checks. See milestones/1.1.1.md for the current release report.
+Current backend: milestone 1.2.0, Apps Script version 4. The previous workbook and all historical records remain intact. Historical requests are not retrospectively emailed.
 
-GitHub merges preserve source but do not automatically redeploy Apps Script. To deploy a backend change, push only the backend source and manifest, create a version, and update the existing deployment. Keep its public endpoint unchanged.
+## Source and checks
+The Apps Script source is backend/Code.gs, backend/Email.gs and backend/appsscript.json. Run node tests/backend.test.cjs and node tests/email.test.cjs. See milestones/1.2.0.md for the release and verification report.
 
-No automatic email sending is enabled. Compose email opens the visitor's email application for review and sending.
+Source merges do not automatically redeploy Apps Script. Preserve the existing endpoint when updating deployments. Owner authorization for send-mail and scheduled triggers is required; enableJebgEmails_ has already been run for this deployment.
+
+Never commit credentials or submission records, publish the private Sheet, or add administration links to docs/index.html.

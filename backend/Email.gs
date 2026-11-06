@@ -14,7 +14,7 @@ function enableJebgEmails_() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(15000)) throw new Error('Submission service is busy. Try setup again.');
   try {
-    const book = SpreadsheetApp.openById(JEBG_CONFIG.spreadsheetId);
+    const book = SpreadsheetApp.openById(activeSpreadsheetId_());
     notificationSheet_(book);
     if (!ScriptApp.getProjectTriggers().some(function(t){ return t.getHandlerFunction() === 'retryJebgEmails_'; })) {
       ScriptApp.newTrigger('retryJebgEmails_').timeBased().everyMinutes(5).create();
@@ -79,7 +79,7 @@ function storedEmailRecord_(book, kind, reference) {
   const row=rows[index], values={};
   schema.fields.forEach(function(field,i){values[field]=String(row[i+2]==null?'':row[i+2]);});
   return {reference:reference,kind:kind,values:values,savedAt:row[1],consent:row[schema.headers.indexOf('Updates Opt-in')]===true,
-    sheetUrl:'https://docs.google.com/spreadsheets/d/'+JEBG_CONFIG.spreadsheetId+'/edit#gid='+sheet.getSheetId()+'&range=A'+(index+2)};
+    sheetUrl:'https://docs.google.com/spreadsheets/d/'+activeSpreadsheetId_()+'/edit#gid='+sheet.getSheetId()+'&range=A'+(index+2)};
 }
 
 /** Send under one lock so retries/concurrent form requests cannot send the same queue item. */
@@ -88,7 +88,7 @@ function sendQueuedEmails_(reference, limit) {
   const lock=LockService.getScriptLock();
   if(!lock.tryLock(1000))return {acknowledgement:'Pending',admin:'Pending'};
   try {
-    const book=SpreadsheetApp.openById(JEBG_CONFIG.spreadsheetId),queue=notificationSheet_(book);
+    const book=SpreadsheetApp.openById(activeSpreadsheetId_()),queue=notificationSheet_(book);
     const count=queue.getLastRow()-1;
     if(count<1)return state;
     const rows=queue.getRange(2,1,count,JEBG_EMAIL.headers.length).getValues();
@@ -183,7 +183,7 @@ function reconcileSubmissionEmails_() {
   const lock=LockService.getScriptLock();
   if(!lock.tryLock(1000))return;
   try {
-    const book=SpreadsheetApp.openById(JEBG_CONFIG.spreadsheetId);
+    const book=SpreadsheetApp.openById(activeSpreadsheetId_());
     Object.keys(JEBG_SCHEMA).forEach(function(kind){
       const schema=JEBG_SCHEMA[kind],sheet=book.getSheetByName(schema.tab);
       if(!sheet)return;

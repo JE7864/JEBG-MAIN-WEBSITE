@@ -1,5 +1,5 @@
-/** JEBG Website Google Sheets backend, v1.2.0.
- * Bound to the private JEBG website spreadsheet. No read/list/admin HTTP endpoint.
+/** JEBG Website Google Sheets backend, v1.3.0.
+ * Bound to the private JEBG website spreadsheet. Public submissions and a separately authenticated owner workspace.
  * Deploy as a Web app, Execute as Me, access Anyone. Keep the sheet Restricted.
  * Transactional emails are queued only after the request is stored.
  */
@@ -9,7 +9,7 @@ const JEBG_CONFIG = Object.freeze({
   contact: 'jamilaexim786vector@gmail.com',
   maxDailySubmissions: 500,
   maxPerEmailPerHour: 10,
-  version: '1.2.0'
+  version: '1.3.0'
 });
 const JEBG_CONSENT = {
   customer: 'I would like to receive relevant JEBG product updates and promotional communications by email. I can withdraw this preference at any time.',
@@ -118,8 +118,8 @@ const JEBG_SCHEMA = {
 };
 
 /** Run once in the Apps Script editor. This preserves all existing rows. */
-function setupJebgBackend() {
-  const book = SpreadsheetApp.openById(JEBG_CONFIG.spreadsheetId);
+function setupJebgBackend_() {
+  const book = SpreadsheetApp.openById(activeSpreadsheetId_());
   book.setSpreadsheetTimeZone('Etc/UTC');
   Object.keys(JEBG_SCHEMA).forEach(function (kind) {
     const schema = JEBG_SCHEMA[kind], sheet = book.getSheetByName(schema.tab);
@@ -135,7 +135,8 @@ function setupJebgBackend() {
   return 'JEBG backend ready. Deploy the Web app and test both forms before cutover.';
 }
 
-function doGet() {
+function doGet(e) {
+  if(e && e.parameter && e.parameter.page === 'admin') return adminPage_();
   return receipt_(false, 'This address receives JEBG website submissions. Please use the enquiry or developer form on our website.', '');
 }
 
@@ -176,7 +177,7 @@ function saveSubmission_(input) {
   const dedupe = sha256_(input.kind + '|' + JSON.stringify(values) + '|' + (input.consent ? 1 : 0));
   const lock = LockService.getScriptLock(); if (!lock.tryLock(15000)) fail_('The form is busy. Please try again shortly.');
   try {
-    const book = SpreadsheetApp.openById(JEBG_CONFIG.spreadsheetId), sheet = book.getSheetByName(schema.tab);
+    const book = SpreadsheetApp.openById(activeSpreadsheetId_()), sheet = book.getSheetByName(schema.tab);
     if (!sheet) throw new Error('Missing storage tab'); assertHeaders_(sheet, schema);
     const last = sheet.getLastRow(), width = schema.headers.length;
     const requestCol = schema.headers.indexOf('Request ID'), hashCol = schema.headers.indexOf('Dedupe Hash');

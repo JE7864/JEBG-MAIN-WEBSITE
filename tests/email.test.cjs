@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.join(__dirname,'../backend');
-const CODE=fs.readFileSync(path.join(root,'Code.gs'),'utf8')+'\n'+fs.readFileSync(path.join(root,'Email.gs'),'utf8');
+const CODE=fs.readFileSync(path.join(root,'Code.gs'),'utf8')+'\n'+fs.readFileSync(path.join(root,'Email.gs'),'utf8')+'\n'+fs.readFileSync(path.join(root,'Settings.gs'),'utf8');
 const reports=[];function check(name,test){if(!test)throw Error(name);reports.push(name);}
 function fixture(options={}){
  const db={},sent=[],props=new Map(),triggers=[];let ids=0;

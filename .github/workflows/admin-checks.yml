@@ -1,0 +1,34 @@
+name: Backend and admin checks
+on:
+  pull_request:
+    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', '.github/workflows/admin-checks.yml']
+  push:
+    branches: [main]
+    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', '.github/workflows/admin-checks.yml']
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Storage regression checks
+        run: node tests/backend.test.cjs
+      - name: Notification regression checks
+        run: node tests/email.test.cjs
+      - name: Admin authorization and migration checks
+        run: node tests/admin.test.cjs
+      - name: Inline JavaScript and unique HTML identifiers
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          for(const path of ['backend/Admin.html','docs/admin/index.html','docs/index.html']){
+            const text=fs.readFileSync(path,'utf8');
+            for(const match of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new Function(match[1]);
+            const ids=[...text.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]);
+            if(new Set(ids).size!==ids.length)throw Error(path+': duplicate IDs');
+            console.log(path+': syntax and IDs passed');
+          }
+          if(fs.readFileSync('docs/CNAME','utf8').trim()!=='jebg.jamilaexim.com')throw Error('Custom domain changed');
+          NODE

@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs');
 const path=require('node:path');
-const CODE=fs.readFileSync(path.join(__dirname,'../backend/Code.gs'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../backend/Email.gs'),'utf8');
+const CODE=fs.readFileSync(path.join(__dirname,'../backend/Code.gs'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../backend/Email.gs'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../backend/Settings.gs'),'utf8');
 const passed=(function(){
 if(new Function(CODE+';return JEBG_CONFIG.spreadsheetId;')()!=='1KqIlgyfKgGCdc-ZwRT0NF1f6WeJkKJV7WQ5mSZHHeJQ')throw Error('Backend must target JEBG MAIN');
 const reports=[];

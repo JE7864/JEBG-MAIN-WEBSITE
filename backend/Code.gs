@@ -136,11 +136,13 @@ function setupJebgBackend_() {
 }
 
 function doGet(e) {
+  if(e && e.parameter && e.parameter.page === 'stats') return publicStatsResponse_();
   if(e && e.parameter && e.parameter.page === 'admin') return adminPage_();
   return receipt_(false, 'This address receives JEBG website submissions. Please use the enquiry or developer form on our website.', '');
 }
 
 function doPost(e) {
+  if(e && e.parameter && e.parameter.event === 'page_visit' && e.parameter.payload == null) return publicVisitResponse_(e);
   try {
     if (!e || !e.parameter || typeof e.parameter.payload !== 'string') fail_('No submission was received. Please return to the website and try again.');
     if (e.parameter.payload.length > 20000) fail_('Your submission is too long. Please shorten it and try again.');

@@ -21,6 +21,8 @@ jobs:
         run: node tests/admin.test.cjs
       - name: Indian time conversion and rollback checks
         run: node tests/timezone.test.cjs
+      - name: Footer metrics and public-output privacy checks
+        run: node tests/metrics.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'

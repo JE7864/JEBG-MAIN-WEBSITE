@@ -25,6 +25,8 @@ jobs:
         run: node tests/metrics.test.cjs
       - name: External visit counter checks
         run: node tests/visits.test.cjs
+      - name: Configured admin access checks
+        run: node tests/admin-launcher.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'

@@ -1,14 +1,17 @@
 # Public footer visit and engagement figures (no Apps Script update)
 
-The footer shows ONLY five numbers, in this order:
+The footer shows ONLY eight numeric figures, in this order:
 
 1. Recorded page visits.
 2. Average page visits per IST calendar day.
 3. Customer enquiry form starts.
-4. Developer application form starts.
-5. Engaged visits reaching 75% of page depth.
+4. Customer form-start rate.
+5. Developer application form starts.
+6. Developer form-start rate.
+7. Engaged visits reaching 75% of page depth.
+8. Engagement rate.
 
-No permanent labels, headings or icons are added. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
+No permanent labels, headings or icons are added. Counts and averages use numeric text; rates include a % sign. Desktop uses eight columns; tablet/mobile uses four columns across two rows, preserving the same reading order. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
 
 ## Activation
 
@@ -27,6 +30,18 @@ The new action counters begin with this release; earlier form activity is not re
 
 The browser marks an action as sent before making its request. It does not automatically retry failures that might already have incremented a counter. A failed response may leave a figure incomplete/hidden. Read/increment responses are applied monotonically within the current page so a slower initial read cannot overwrite a newer event total.
 
+## Derived rates (no additional requests)
+
+Customer form-start rate = customer starts ÷ recorded page visits × 100.
+Developer form-start rate = developer starts ÷ recorded page visits × 100.
+Engagement rate = engaged visits ÷ recorded page visits × 100.
+
+These are calculated in the browser from the same four existing totals, formatted as percentages with up to one decimal, and refreshed on successful counter updates. No new counter keys, API requests, backend functions or tracking events are needed. The existing visit history and daily-average start date are preserved.
+
+With zero recorded visits, rates display 0% as an empty-baseline convention instead of NaN/Infinity. Ratios are not capped at 100%; independent public counts, network failures, timing differences or external modifications can produce values above 100%, and silently capping would conceal the data.
+
+These are cumulative aggregate ratios, not matched-cohort conversion measurements. All key names use the 7 November 2026 release date, but engagement tracking was enabled later than visit tracking on that day. Earlier actions cannot be reconstructed. The engaged figure counts visits reaching the threshold; it does not identify individual customers or prove that an enquiry was saved.
+
 ## Privacy and limits
 
 No names, emails, field contents, Google URLs, form payloads, cookies or browser-storage identifiers are included in counter requests. The code inspects whether a field is nonblank but sends only a fixed action key. Requests omit credentials and referrer. As with any external request, the provider receives network-level information under its policies. No executable external library is loaded, only JSON.
@@ -39,6 +54,6 @@ Preview/local hosts do not request production counters. The strip is deliberatel
 
 GitHub Actions previously verified the provider's status endpoint returned HTTP 200 with Access-Control-Allow-Origin for https://jebg.jamilaexim.com, and a read-only query for the original new visit key returned HTTP 404 with the same origin permission. Automated tests use mocks and never increment production counters.
 
-tests/visits.test.cjs covers five numbers only, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
+tests/visits.test.cjs covers eight numeric figures, exact order, percentage formulas/rounding, zero denominator, live rate updates and responsive columns, as well as, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
 
 Provider documentation: https://countapi.mileshilliard.com/ and https://github.com/syntaxerror019/countapi.

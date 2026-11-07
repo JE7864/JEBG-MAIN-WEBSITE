@@ -7,7 +7,7 @@ const reports=[];function check(n,v){if(!v)throw Error(n);reports.push(n);}
 function create(options={}){
  const requests=[],timers=[],cleared=[],frames=[],winEvents={},docEvents={},formEvents={},counts={visits:24,customer:3,developer:4,engaged:5,...options.counts},missing=new Set(options.missing||[]);
  const elements={'footer-metrics':{hidden:true}};
- ['metric-visits','metric-daily','metric-customer-starts','metric-developer-starts','metric-engaged'].forEach(id=>elements[id]={textContent:'0',setAttribute(k,v){this[k]=v;}});
+ ['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate'].forEach(id=>elements[id]={textContent:'0',setAttribute(k,v){this[k]=v;}});
  ['enquiry','expert-form'].forEach(id=>{formEvents[id]={};elements[id]={addEventListener(type,fn){formEvents[id][type]=fn;}};});
  const doc={visibilityState:'visible',documentElement:{scrollHeight:options.height||1000},body:{scrollHeight:options.bodyHeight||1000},getElementById:id=>{if(!elements[id])throw Error('Unexpected element '+id);return elements[id];},addEventListener:(type,fn)=>docEvents[type]=fn};
  const win={scrollY:0,innerHeight:options.viewport||200,addEventListener:(type,fn)=>winEvents[type]=fn};
@@ -33,29 +33,37 @@ function create(options={}){
 async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
  const markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
- check('only five numbers in visible markup',/^00000$/.test(markup.replace(/<[^>]*>/g,'')));
+ check('only eight numbers and percentage signs in visible markup',markup.replace(/<[^>]*>/g,'')==='0000%00%00%');
+ check('exact requested DOM order',JSON.stringify([...markup.matchAll(/<span id="([^"]+)"/g)].map(m=>m[1]))===JSON.stringify(['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate']));
  check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
  check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
  check('independent of Google backend config',!client.includes('googleWebAppUrl')&&!client.includes('backendConnectionReady'));
  check('strip hidden until valid values',/\bhidden>/.test(markup));
- check('five keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===5);
+ check('eight keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===8);
+ check('desktop eight columns and small-screen four columns',html.includes('grid-template-columns:repeat(8,minmax(0,1fr))')&&html.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
  {
   const f=await run();check('one visit increment on load',f.hits('visits').length===1);check('engagement totals only read on load',f.requests.filter(r=>r.readOnly).length===3&&f.hits().length===1);
   check('fixed verified provider endpoint',f.requests.every(r=>r.url.startsWith('https://countapi.mileshilliard.com/api/v1/')));
   check('credentials and referrer omitted',f.requests.every(r=>r.init.credentials==='omit'&&r.init.referrerPolicy==='no-referrer'));
   check('no form contents sent',f.requests.every(r=>!r.init.body)&&!JSON.stringify(f.requests).includes('Private typed text'));
   check('no third-party executable scripts',!client.includes('createElement'));
-  check('five actual figures displayed',f.elements['metric-visits'].textContent==='25'&&f.elements['metric-daily'].textContent==='25'&&f.elements['metric-customer-starts'].textContent==='3'&&f.elements['metric-developer-starts'].textContent==='4'&&f.elements['metric-engaged'].textContent==='5');
+  check('original actual figures preserved',f.elements['metric-visits'].textContent==='25'&&f.elements['metric-daily'].textContent==='25'&&f.elements['metric-customer-starts'].textContent==='3'&&f.elements['metric-developer-starts'].textContent==='4'&&f.elements['metric-engaged'].textContent==='5');
+  check('customer start rate calculated',f.elements['metric-customer-rate'].textContent==='12%');
+  check('developer start rate calculated',f.elements['metric-developer-rate'].textContent==='16%');
+  check('engagement rate calculated',f.elements['metric-engagement-rate'].textContent==='20%');
+  check('rates require no additional requests',f.requests.length===4);
   check('valid figures reveal strip',!f.elements['footer-metrics'].hidden);
   check('tooltips and accessible names identify starts',f.elements['metric-customer-starts'].title.includes('form starts')&&f.elements['metric-engaged']['aria-label'].includes('75%'));
   check('timeouts cleared',f.cleared.length===4);
   f.emit('enquiry','input');await f.flush();check('customer typing counts one start',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='4');
   f.emit('enquiry','input',{name:'email',value:'secret@example.com'});f.emit('enquiry','change');await f.flush();check('customer edits and change events do not count twice',f.hits('customer').length===1);
+  check('customer rate updates after first input',f.elements['metric-customer-rate'].textContent==='16%');
   f.emit('expert-form','input',{tagName:'TEXTAREA',name:'message'});await f.flush();check('developer tracked independently',f.hits('developer').length===1&&f.elements['metric-developer-starts'].textContent==='5');
   check('typed values never appear in requests',!JSON.stringify(f.requests).includes('secret@example.com')&&!JSON.stringify(f.requests).includes('Private typed text'));
   f.win.scrollY=549;f.winEvents.scroll();await f.flush();check('below 75 percent does not engage',f.hits('engaged').length===0);
   f.win.scrollY=550;f.winEvents.scroll();await f.flush();check('exactly 75 percent counts engagement',f.hits('engaged').length===1&&f.elements['metric-engaged'].textContent==='6');
   f.win.scrollY=800;f.winEvents.scroll();f.winEvents.resize();await f.flush();check('repeated scroll and resize count once',f.hits('engaged').length===1);
+  check('developer and engagement rates update on events',f.elements['metric-developer-rate'].textContent==='20%'&&f.elements['metric-engagement-rate'].textContent==='24%');
  }
  for(const field of [{value:''},{value:'  '},{name:'website'},{type:'hidden'},{type:'checkbox'},{type:'radio'},{disabled:true},{tagName:'DIV'},{name:''}]){
   const f=await run();f.emit('enquiry','input',field);await f.flush();check('ignored field '+JSON.stringify(field),f.hits('customer').length===0);
@@ -102,5 +110,19 @@ async function run(options={}){const f=create(options);await f.ready;await f.flu
  {
   const f=create({counts:{customer:0},missing:['customer']});f.emit('enquiry','input');await f.ready;await f.flush();check('early input is counted before startup reads finish',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='1');
  }
- console.log(reports.length+' external visit and engagement checks passed.');
+ 
+ {
+  const f=await run({counts:{visits:2,customer:1,developer:2,engaged:3}});
+  check('percentage rounding to one decimal',f.elements['metric-customer-rate'].textContent==='33.3%'&&f.elements['metric-developer-rate'].textContent==='66.7%');
+  check('one hundred percent renders correctly',f.elements['metric-engagement-rate'].textContent==='100%');
+ }
+ {
+  const f=await run({data:{value:0},counts:{customer:0,developer:0,engaged:0}});
+  check('zero visits shows safe zero rates',['metric-customer-rate','metric-developer-rate','metric-engagement-rate'].every(id=>f.elements[id].textContent==='0%'));
+ }
+ {
+  const f=await run({counts:{customer:30}});
+  check('aggregate ratio not silently capped',f.elements['metric-customer-rate'].textContent==='120%');
+ }
+ console.log(reports.length+' external visit, engagement and rate checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -31,3 +31,7 @@ The guided sheet migration checks headers and UTC timestamps, previews differenc
 ## Indian Standard Time (1.3.1 source)
 
 The dashboard displays dates in Asia/Kolkata (IST, UTC+05:30). Backend settings provides an owner-only Apply IST control that preserves original timestamp instants while converting managed spreadsheet date columns and headers. Update both existing Apps Script deployments before applying it. Keep the active-sheet Script Properties and existing URLs. See the Indian Standard Time activation steps in [backend/ADMIN_SETUP.md](backend/ADMIN_SETUP.md); no live spreadsheet has been changed by this source update.
+
+## Search visibility
+
+The public site includes a custom-domain canonical URL, sitemap.xml, robots.txt, organization/site structured data and a branded favicon. See [SEO_SETUP.md](SEO_SETUP.md) for Search Console/Bing submission, scope and validation. Domain ownership verification is separate from indexing; publication does not guarantee rankings. No Apps Script update is required.

@@ -53,18 +53,4 @@ const id=n=>'aaaaaaaa-bbbb-4ccc-8ddd-'+String(n).padStart(12,'0'),day=new Date('
  const f=fixture();const result=f.api.doPost({parameter:{event:'page_visit',visitId:id(1)}});check('visit event routes independently of forms',JSON.parse(result.body).ok===true);check('visit event never writes form records',Object.values(f.rows).every(r=>r.length===0));check('visit reply contains no private data',result.body==='{"ok":true}');
  f.status.missing=true;check('missing records do not produce fake zero totals',f.api.publicStatsResponse_().body.includes('"unavailable":true'));
 }
-const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8'),markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
-check('only numbers are visible inside metrics strip',/^0\s*0\s*0\s*0$/.test(markup.replace(/<[^>]*>/g,'')));
-check('strip hidden until real data arrives',/\bhidden>/.test(markup));check('all four numbers have accessible labels',(markup.match(/tabindex="0" aria-label=/g)||[]).length===4);
-const client=html.slice(html.indexOf('// Four public aggregates only;'),html.indexOf('</script>',html.indexOf('// Four public aggregates only;')));
-{
- const elements={'footer-metrics':{hidden:true}};
- ['visits','daily','customers','developers'].forEach(k=>elements['metric-'+k]={textContent:'0',setAttribute(k,v){this[k]=v;}});
- const window={};new Function('window','document','backendConnectionReady','clearTimeout',client)(window,{getElementById:id=>elements[id]},{then(){}},()=>{});
- window.jebgFooterStats({schemaVersion:1,totalVisits:1234,averageDailyVisits:12.3,customerSubmissions:9,developerSubmissions:4,startedOn:'2026-11-07'});
- check('real values populate four counters',elements['metric-visits'].textContent==='1234'&&elements['metric-daily'].textContent==='12.3'&&elements['metric-customers'].textContent==='9'&&elements['metric-developers'].textContent==='4');
- check('valid data reveals strip',elements['footer-metrics'].hidden===false);
- check('hover and screen-reader labels populated',elements['metric-visits'].title.includes('Total page visits')&&elements['metric-visits']['aria-label'].includes('1234'));
- elements['footer-metrics'].hidden=true;window.jebgFooterStats({schemaVersion:1,totalVisits:-2});check('malformed data does not reveal strip',elements['footer-metrics'].hidden===true);
-}
-console.log(reports.length+' metrics checks passed.');
+console.log(reports.length+' legacy metrics checks passed.');

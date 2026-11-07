@@ -23,6 +23,8 @@ jobs:
         run: node tests/timezone.test.cjs
       - name: Footer metrics and public-output privacy checks
         run: node tests/metrics.test.cjs
+      - name: External visit counter checks
+        run: node tests/visits.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'

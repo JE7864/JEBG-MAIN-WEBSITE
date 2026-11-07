@@ -3,7 +3,7 @@ const JEBG_EMAIL = Object.freeze({
   sheet: 'Email Notifications',
   source: 'Google website form (email enabled)',
   flag: 'JEBG_EMAIL_ENABLED',
-  headers: ['Reference','Kind','Recipient Role','Recipient','Status','Attempts','Last Attempt UTC','Sent At UTC','Error'],
+  headers: ['Reference','Kind','Recipient Role','Recipient','Status','Attempts','Last Attempt IST','Sent At IST','Error'],
   senderName: 'JEBG AI Technologies | Jamila Exim',
   maxBatch: 20
 });
@@ -42,7 +42,7 @@ function notificationSheet_(book) {
     sheet.getRange(1,1,sheet.getMaxRows(),JEBG_EMAIL.headers.length).createFilter();
   }
   const headers = sheet.getRange(1,1,1,JEBG_EMAIL.headers.length).getDisplayValues()[0];
-  if (headers.some(function(v,i){return v !== JEBG_EMAIL.headers[i];})) throw new Error('Notification headers changed');
+  if (headers.some(function(v,i){return !headerMatches_(v,JEBG_EMAIL.headers[i]);})) throw new Error('Notification headers changed');
   return sheet;
 }
 

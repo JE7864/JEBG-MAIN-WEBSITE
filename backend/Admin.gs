@@ -39,7 +39,7 @@ function adminConnectionData_(){
  try{quota=MailApp.getRemainingDailyQuota();}catch(e){}
  try{worker=ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()==='retryJebgEmails_';});}catch(e){}
  try{adminUrl=ScriptApp.getService().getUrl()||'';}catch(e){}
- return {revision:s.revision,spreadsheetId:s.spreadsheetId,previousSpreadsheetId:s.previousSpreadsheetId||'',title:book.getName(),url:book.getUrl(),publicWebAppUrl:s.publicWebAppUrl||JEBG_DEFAULT_ENDPOINT,adminWebAppUrl:s.adminWebAppUrl||adminUrl,emailEnabled:PropertiesService.getScriptProperties().getProperty(JEBG_EMAIL.flag)==='true',remainingRecipients:quota,retryWorker:worker,audit:s.audit||[]};
+ return {revision:s.revision,spreadsheetId:s.spreadsheetId,previousSpreadsheetId:s.previousSpreadsheetId||'',title:book.getName(),url:book.getUrl(),timezone:book.getSpreadsheetTimeZone(),publicWebAppUrl:s.publicWebAppUrl||JEBG_DEFAULT_ENDPOINT,adminWebAppUrl:s.adminWebAppUrl||adminUrl,emailEnabled:PropertiesService.getScriptProperties().getProperty(JEBG_EMAIL.flag)==='true',remainingRecipients:quota,retryWorker:worker,audit:s.audit||[]};
 }
 function adminConnection(token){adminRequire_(token);return adminConnectionData_();}
 function adminRows_(book,kind){
@@ -109,7 +109,7 @@ function adminSnapshot_(book){
  return adminSpecs_().map(function(spec){
   const sheet=book.getSheetByName(spec.name);if(!sheet)throw new Error('Prepare the destination: missing '+spec.name+'.');
   const headers=sheet.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];
-  if(headers.some(function(v,i){return v!==spec.headers[i];}))throw new Error('Headers do not match in '+spec.name+'. No existing headers will be overwritten.');
+  if(headers.some(function(v,i){return !headerMatches_(v,spec.headers[i]);}))throw new Error('Headers do not match in '+spec.name+'. No existing headers will be overwritten.');
   const rows=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,spec.headers.length).getValues().filter(function(r){return r[0];}):[];
   const keys={};rows.forEach(function(r){const key=String(r[0])+(spec.kind==='email'?'|'+String(r[2]):'');if(keys[key])throw new Error('Duplicate reference in '+spec.name+'.');keys[key]=true;});
   return {spec:spec,sheet:sheet,rows:rows};
@@ -132,19 +132,19 @@ function adminTestDestination(token,value){
  adminRequire_(token);const id=spreadsheetId_(value),book=SpreadsheetApp.openById(id);
  const tabs=book.getSheets().map(function(s){return s.getName();});
  let compatible=true,issues=[];
- adminSpecs_().forEach(function(spec){const sheet=book.getSheetByName(spec.name);if(!sheet){compatible=false;issues.push('Missing '+spec.name);return;}if(sheet.getLastRow()===0){compatible=false;issues.push('Empty '+spec.name);return;}const h=sheet.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];if(h.some(function(v,i){return v!==spec.headers[i];})){compatible=false;issues.push('Different headers in '+spec.name);}});
- if(book.getSpreadsheetTimeZone()!=='Etc/UTC'){compatible=false;issues.push('Destination timezone must be Etc/UTC.');}
+ adminSpecs_().forEach(function(spec){const sheet=book.getSheetByName(spec.name);if(!sheet){compatible=false;issues.push('Missing '+spec.name);return;}if(sheet.getLastRow()===0){compatible=false;issues.push('Empty '+spec.name);return;}const h=sheet.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];if(h.some(function(v,i){return !headerMatches_(v,spec.headers[i]);})){compatible=false;issues.push('Different headers in '+spec.name);}});
+ if(!indianTimeZone_(book.getSpreadsheetTimeZone())){compatible=false;issues.push('Destination timezone must be Indian Standard Time (Asia/Kolkata).');}
  return {id:id,title:book.getName(),url:book.getUrl(),timezone:book.getSpreadsheetTimeZone(),tabs:tabs,compatible:compatible,issues:issues,alreadyActive:id===activeSpreadsheetId_()};
 }
-function adminPrepareDestination(token,value,confirmUTC){
+function adminPrepareDestination(token,value,confirmIST){
  const owner=adminRequire_(token),id=spreadsheetId_(value);
  return adminLock_(function(){
   if(id===activeSpreadsheetId_())throw new Error('This spreadsheet is already active.');
   const book=SpreadsheetApp.openById(id);
-  if(book.getSpreadsheetTimeZone()!=='Etc/UTC'&&confirmUTC!==true)throw new Error('Confirm the UTC timezone change before preparing this destination.');
+  if(!indianTimeZone_(book.getSpreadsheetTimeZone())&&confirmIST!==true)throw new Error('Confirm the IST timezone change before preparing this destination.');
   // Validate every existing managed tab before creating any missing tabs.
-  adminSpecs_().forEach(function(spec){const sheet=book.getSheetByName(spec.name);if(sheet&&sheet.getLastRow()>0){const h=sheet.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];if(h.some(function(v,i){return v!==spec.headers[i];}))throw new Error('Existing headers differ in '+spec.name+'. Nothing was overwritten.');}});
-  if(confirmUTC===true)book.setSpreadsheetTimeZone('Etc/UTC');
+  adminSpecs_().forEach(function(spec){const sheet=book.getSheetByName(spec.name);if(sheet&&sheet.getLastRow()>0){const h=sheet.getRange(1,1,1,spec.headers.length).getDisplayValues()[0];if(h.some(function(v,i){return !headerMatches_(v,spec.headers[i]);}))throw new Error('Existing headers differ in '+spec.name+'. Nothing was overwritten.');}});
+  // Conversion runs after all missing tabs have been prepared.
   adminSpecs_().forEach(function(spec){
    let sheet=book.getSheetByName(spec.name);if(!sheet)sheet=book.insertSheet(spec.name);
    if(sheet.getMaxColumns()<spec.headers.length)sheet.insertColumnsAfter(sheet.getMaxColumns(),spec.headers.length-sheet.getMaxColumns());
@@ -154,7 +154,7 @@ function adminPrepareDestination(token,value,confirmUTC){
    sheet.setRowHeight(1,44);
    if(!sheet.getFilter())sheet.getRange(1,1,sheet.getMaxRows(),spec.headers.length).createFilter();
   });
-  SpreadsheetApp.flush();adminAudit_(backendSettings_(),owner,'Prepared destination',id);
+  applyIndianTime_(book);SpreadsheetApp.flush();adminAudit_(backendSettings_(),owner,'Prepared destination',id);
   return adminTestDestination(token,id);
  });
 }
@@ -162,7 +162,7 @@ function adminPreviewMigration(token,value){
  adminRequire_(token);const state=backendSettings_(),id=spreadsheetId_(value);
  if(id===state.spreadsheetId)throw new Error('Choose a different destination.');
  const targetBook=SpreadsheetApp.openById(id);
- if(targetBook.getSpreadsheetTimeZone()!=='Etc/UTC')throw new Error('Prepare the destination with UTC timestamps first.');
+ if(!indianTimeZone_(targetBook.getSpreadsheetTimeZone()))throw new Error('Prepare the destination with IST timestamps first.');
  return adminMigrationPlan_(adminSnapshot_(SpreadsheetApp.openById(state.spreadsheetId)),adminSnapshot_(targetBook),state,id);
 }
 function adminActivateDestination(token,input){
@@ -172,7 +172,7 @@ function adminActivateDestination(token,input){
   const state=backendSettings_();
   if(state.revision!==input.revision||id===state.spreadsheetId)throw new Error('Connection settings changed. Preview the migration again.');
   const sourceBook=SpreadsheetApp.openById(state.spreadsheetId),targetBook=SpreadsheetApp.openById(id);
-  if(targetBook.getSpreadsheetTimeZone()!=='Etc/UTC')throw new Error('Destination timezone changed. Prepare it again.');
+  if(!indianTimeZone_(targetBook.getSpreadsheetTimeZone()))throw new Error('Destination timezone changed. Prepare it again.');
   const source=adminSnapshot_(sourceBook),target=adminSnapshot_(targetBook),plan=adminMigrationPlan_(source,target,state,id);
   if(plan.planHash!==input.planHash)throw new Error('Records changed since preview. Refresh the migration preview.');
   if(!plan.canActivate)throw new Error('Resolve conflicting records or in-flight email attempts before activation.');
@@ -204,6 +204,16 @@ function adminSaveIntegration(token,input){
   const s=backendSettings_();if(s.revision!==input.revision)throw new Error('Settings changed. Reload this page.');
   const next=Object.assign({},s,{publicWebAppUrl:publicUrl,adminWebAppUrl:adminUrl});
   adminAudit_(next,owner,'Saved integration references','Website connection file requires publication for URL changes');
+  return adminConnectionData_();
+ });
+}
+
+function adminApplyIndianTime(token,confirmed){
+ const owner=adminRequire_(token);
+ if(confirmed!==true)throw new Error('Confirm the active spreadsheet timezone change first.');
+ return adminLock_(function(){
+  applyIndianTime_(SpreadsheetApp.openById(activeSpreadsheetId_()));
+  adminAudit_(backendSettings_(),owner,'Applied Indian Standard Time',activeSpreadsheetId_());
   return adminConnectionData_();
  });
 }

@@ -17,14 +17,14 @@ The existing email enable flag and retry trigger remain in the project. Do not r
 
 ## Dashboard
 
-Overview shows actual request totals, active follow-ups and queue states. Customer and developer tables support search, status filters and 20-record pages. Detail panels preserve submitted fields and opt-in evidence; only Status, Notes and Updated At UTC are editable. Saves use row fingerprints to reject stale edits. Email history is read-only. “Sent” means accepted by Google's sending service, not proven inbox delivery.
+Overview shows actual request totals, active follow-ups and queue states. Customer and developer tables support search, status filters and 20-record pages. Detail panels preserve submitted fields and opt-in evidence; only Status, Notes and Updated At IST are editable. Saves use row fingerprints to reject stale edits. Email history is read-only. “Sent” means accepted by Google's sending service, not proven inbox delivery.
 
 ## Move to another spreadsheet
 
 Use a dedicated destination spreadsheet owned by or shared with the owner and the public deployment owner. Spreadsheet ID/URL and web app URL have different purposes: changing a sheet does not require changing the public web app URL.
 
-1. Test destination: read-only checks for access, managed tabs, exact headers and Etc/UTC timezone.
-2. Prepare: explicitly confirm UTC if needed. All existing managed headers are checked before changes. Only missing tabs/blank headers are created; existing records are not overwritten. Unrelated tabs remain intact.
+1. Test destination: read-only checks for access, managed tabs, exact headers and Asia/Kolkata timezone.
+2. Prepare: explicitly confirm IST if needed. All existing managed headers are checked before changes. Only missing tabs/blank headers are created; existing records are not overwritten. Unrelated tabs remain intact.
 3. Preview: compares source/destination references and full managed row values. Duplicate references, conflicting rows, formula-like source text and in-flight Sending email rows block activation. Matching references are retained; missing source records are copied; destination-only records are retained.
 4. Type the exact destination ID, then Copy, verify & activate. A shared script lock blocks public writers and the email worker during cutover. The plan is recomputed to reject stale previews. Source changes during copying also block activation. All managed rows are read back and compared before the single active-connection property is updated.
 5. Verify a new public test submission and queued notification in the new destination. Keep the former spreadsheet as an archive. To switch back, select Previous destination, then test/preview again; new records must be copied back before activation.
@@ -44,3 +44,18 @@ Do not migrate to a separate Apps Script project by merely pasting its URL: prop
 ## Validation
 
 Run node tests/backend.test.cjs, node tests/email.test.cjs and node tests/admin.test.cjs. Mock tests do not contact Google, send mail or change stored data. Live identity, Google authorization/deployment, real spreadsheet permissions, email delivery and browser rendering must be validated by the owner after deployment.
+
+## Indian Standard Time update (1.3.1)
+
+Existing date values represent actual instants. Do not add 5:30 to Date objects or change the workbook timezone manually: doing so can misinterpret old values. The dedicated Apply IST operation reads timestamps under the old timezone, changes it to Asia/Kolkata, writes the same Date instants, relabels managed timestamp headers to IST and verifies the result. Blanks, request contents, consent text, IDs, queue states and sending logic are preserved. Ordinary failures attempt to restore the original timezone, timestamp values, headers and number formats. Apps Script termination cannot guarantee rollback; first make a spreadsheet backup, and avoid simultaneous direct spreadsheet edits.
+
+1. Merge the IST pull request and update Code.gs, Email.gs, Settings.gs, Admin.gs and the dashboard HTML in the CURRENT bound project. Keep existing Script Properties (including the newly selected spreadsheet ID) and triggers. No new standalone project or sheet migration is needed.
+2. Your deployed HTML is named Admin1.html. Paste the updated Admin.html source into Admin1.html, and keep createHtmlOutputFromFile('Admin1') in Admin.gs. Script filenames may differ, but functions must not be duplicated.
+3. Deploy NEW VERSIONS of BOTH existing deployments before converting headers. Preserve URLs. Public: Execute as Me / Anyone. Private admin: User accessing / Only myself. Old public versions expect UTC headers and will reject renamed IST headers.
+4. Open the private dashboard → Backend settings → Indian Standard Time. Confirm the backup/timezone notice and click Apply IST to active spreadsheet. The operation uses the stored active ID; it does not revert to the original JEBG MAIN default. It is owner-only, uses the shared script lock and can be safely repeated after a successful conversion.
+5. Check a known old record: e.g. 09:00 UTC must display 14:30 IST on the same day. Check a near-midnight record for the next-day rollover. Test both forms and email notifications. Receipts/emails already use IST; the dashboard now explicitly uses Asia/Kolkata even for a browser in another timezone.
+6. Future destination preparation uses IST. Preview/activation require an IST destination and can copy real Dates from an older UTC source. Legacy UTC header names are accepted by the updated readers so deployment can happen before conversion.
+
+The converter refuses unknown timezone/header combinations, formulas or non-Date nonblank timestamp cells. It handles up to 5000 data rows per managed tab; larger datasets require staged conversion. It touches only managed timestamp columns, but changing the workbook timezone may affect formulas and date behavior in other tabs. Do not change active spreadsheet timezone through the regular destination migration controls.
+
+GitHub updates do not redeploy Apps Script or alter any live spreadsheet. Google authorization, actual date serialization and live form/email tests require owner verification after activation.

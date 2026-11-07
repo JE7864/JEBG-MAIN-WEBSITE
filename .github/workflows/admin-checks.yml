@@ -19,6 +19,8 @@ jobs:
         run: node tests/email.test.cjs
       - name: Admin authorization and migration checks
         run: node tests/admin.test.cjs
+      - name: Indian time conversion and rollback checks
+        run: node tests/timezone.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'

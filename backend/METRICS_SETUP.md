@@ -11,7 +11,7 @@ The footer shows ONLY eight numeric figures, in this order:
 7. Engaged visits reaching 75% of page depth.
 8. Engagement rate.
 
-No permanent labels, headings or icons are added. All eight figures use numeric text, including rates. Percent units are retained only in hover titles and accessible labels. Desktop uses eight columns; tablet/mobile uses four columns across two rows, preserving the same reading order. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
+No permanent labels, headings or icons are added. All eight figures use numeric text, including rates. Percent units are retained only in hover titles and accessible labels. A compact bordered “Website activity” box sits on the right within the footer. Four columns across two rows preserve the reading order on every screen. On mobile the box fills the footer width; it is not fixed or floating over page content. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
 
 ## Activation
 

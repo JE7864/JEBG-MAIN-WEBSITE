@@ -33,14 +33,14 @@ function create(options={}){
 async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
  const markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
- check('only eight numbers in visible markup',markup.replace(/<[^>]*>/g,'')==='00000000');
+ check('small heading with eight numeric values',markup.replace(/<[^>]*>/g,'')==='Website activity00000000');
  check('exact requested DOM order',JSON.stringify([...markup.matchAll(/<span id="([^"]+)"/g)].map(m=>m[1]))===JSON.stringify(['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate']));
  check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
  check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
  check('independent of Google backend config',!client.includes('googleWebAppUrl')&&!client.includes('backendConnectionReady'));
  check('strip hidden until valid values',/\bhidden>/.test(markup));
  check('eight keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===8);
- check('desktop eight columns and small-screen four columns',html.includes('grid-template-columns:repeat(8,minmax(0,1fr))')&&html.includes('grid-template-columns:repeat(4,minmax(0,1fr))'));
+ check('compact four-column grid, right-aligned desktop box and full-width mobile',html.includes('.footer-metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))')&&html.includes('max-width:100%;margin-left:auto')&&html.includes('width:100%;max-width:none;margin-left:0'));
  {
   const f=await run();check('one visit increment on load',f.hits('visits').length===1);check('engagement totals only read on load',f.requests.filter(r=>r.readOnly).length===3&&f.hits().length===1);
   check('fixed verified provider endpoint',f.requests.every(r=>r.url.startsWith('https://countapi.mileshilliard.com/api/v1/')));

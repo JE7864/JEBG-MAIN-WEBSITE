@@ -114,7 +114,8 @@ async function run(options={}){const f=create(options);await f.ready;await f.flu
  
  {
   const f=await run({counts:{visits:2,customer:1,developer:2,engaged:3}});
-  check('percentage rounding to one decimal',f.elements['metric-customer-rate'].textContent==='33.3'&&f.elements['metric-developer-rate'].textContent==='66.7');
+  check('percentage values round to nearest integer',f.elements['metric-customer-rate'].textContent==='33'&&f.elements['metric-developer-rate'].textContent==='67');
+  check('rate values have no decimals or percent signs',['metric-customer-rate','metric-developer-rate','metric-engagement-rate'].every(id=>/^\d+$/.test(f.elements[id].textContent)));
   check('one hundred percent renders correctly',f.elements['metric-engagement-rate'].textContent==='100');
  }
  {

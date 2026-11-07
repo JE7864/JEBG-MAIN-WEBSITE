@@ -88,7 +88,7 @@ menu.addEventListener('click',()=>{if(!nav.classList.contains('open'))closeProdu
   const days=Math.floor((today-launchDay)/86400000)+1,average=Math.round(values.visits/days*10)/10;
   fields.forEach(([id,key,label,rate])=>{
    const number=key==='average'?average:rate?(values.visits>0?values[key]/values.visits:0):values[key];
-   const element=document.getElementById(id),text=new Intl.NumberFormat('en-IN',{style:rate?'percent':'decimal',maximumFractionDigits:rate||key==='average'?1:0,useGrouping:false}).format(number).replace('%','');
+   const element=document.getElementById(id),text=new Intl.NumberFormat('en-IN',{style:rate?'percent':'decimal',maximumFractionDigits:!rate&&key==='average'?1:0,useGrouping:false}).format(number).replace('%','');
    element.textContent=text;element.title=label+': '+text+(rate?' percent':'')+' (since 7 November 2026)';element.setAttribute('aria-label',element.title);
   });
   strip.hidden=false;

@@ -33,7 +33,7 @@ function create(options={}){
 async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
  const markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
- check('only eight numbers and percentage signs in visible markup',markup.replace(/<[^>]*>/g,'')==='0000%00%00%');
+ check('only eight numbers in visible markup',markup.replace(/<[^>]*>/g,'')==='00000000');
  check('exact requested DOM order',JSON.stringify([...markup.matchAll(/<span id="([^"]+)"/g)].map(m=>m[1]))===JSON.stringify(['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate']));
  check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
  check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
@@ -48,22 +48,23 @@ async function run(options={}){const f=create(options);await f.ready;await f.flu
   check('no form contents sent',f.requests.every(r=>!r.init.body)&&!JSON.stringify(f.requests).includes('Private typed text'));
   check('no third-party executable scripts',!client.includes('createElement'));
   check('original actual figures preserved',f.elements['metric-visits'].textContent==='25'&&f.elements['metric-daily'].textContent==='25'&&f.elements['metric-customer-starts'].textContent==='3'&&f.elements['metric-developer-starts'].textContent==='4'&&f.elements['metric-engaged'].textContent==='5');
-  check('customer start rate calculated',f.elements['metric-customer-rate'].textContent==='12%');
-  check('developer start rate calculated',f.elements['metric-developer-rate'].textContent==='16%');
-  check('engagement rate calculated',f.elements['metric-engagement-rate'].textContent==='20%');
+  check('customer start rate calculated',f.elements['metric-customer-rate'].textContent==='12');
+  check('developer start rate calculated',f.elements['metric-developer-rate'].textContent==='16');
+  check('engagement rate calculated',f.elements['metric-engagement-rate'].textContent==='20');
+  check('rate hover and screen-reader labels retain units',f.elements['metric-customer-rate'].title.includes('12 percent')&&f.elements['metric-customer-rate']['aria-label'].includes('12 percent'));
   check('rates require no additional requests',f.requests.length===4);
   check('valid figures reveal strip',!f.elements['footer-metrics'].hidden);
   check('tooltips and accessible names identify starts',f.elements['metric-customer-starts'].title.includes('form starts')&&f.elements['metric-engaged']['aria-label'].includes('75%'));
   check('timeouts cleared',f.cleared.length===4);
   f.emit('enquiry','input');await f.flush();check('customer typing counts one start',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='4');
   f.emit('enquiry','input',{name:'email',value:'secret@example.com'});f.emit('enquiry','change');await f.flush();check('customer edits and change events do not count twice',f.hits('customer').length===1);
-  check('customer rate updates after first input',f.elements['metric-customer-rate'].textContent==='16%');
+  check('customer rate updates after first input',f.elements['metric-customer-rate'].textContent==='16');
   f.emit('expert-form','input',{tagName:'TEXTAREA',name:'message'});await f.flush();check('developer tracked independently',f.hits('developer').length===1&&f.elements['metric-developer-starts'].textContent==='5');
   check('typed values never appear in requests',!JSON.stringify(f.requests).includes('secret@example.com')&&!JSON.stringify(f.requests).includes('Private typed text'));
   f.win.scrollY=549;f.winEvents.scroll();await f.flush();check('below 75 percent does not engage',f.hits('engaged').length===0);
   f.win.scrollY=550;f.winEvents.scroll();await f.flush();check('exactly 75 percent counts engagement',f.hits('engaged').length===1&&f.elements['metric-engaged'].textContent==='6');
   f.win.scrollY=800;f.winEvents.scroll();f.winEvents.resize();await f.flush();check('repeated scroll and resize count once',f.hits('engaged').length===1);
-  check('developer and engagement rates update on events',f.elements['metric-developer-rate'].textContent==='20%'&&f.elements['metric-engagement-rate'].textContent==='24%');
+  check('developer and engagement rates update on events',f.elements['metric-developer-rate'].textContent==='20'&&f.elements['metric-engagement-rate'].textContent==='24');
  }
  for(const field of [{value:''},{value:'  '},{name:'website'},{type:'hidden'},{type:'checkbox'},{type:'radio'},{disabled:true},{tagName:'DIV'},{name:''}]){
   const f=await run();f.emit('enquiry','input',field);await f.flush();check('ignored field '+JSON.stringify(field),f.hits('customer').length===0);
@@ -113,16 +114,16 @@ async function run(options={}){const f=create(options);await f.ready;await f.flu
  
  {
   const f=await run({counts:{visits:2,customer:1,developer:2,engaged:3}});
-  check('percentage rounding to one decimal',f.elements['metric-customer-rate'].textContent==='33.3%'&&f.elements['metric-developer-rate'].textContent==='66.7%');
-  check('one hundred percent renders correctly',f.elements['metric-engagement-rate'].textContent==='100%');
+  check('percentage rounding to one decimal',f.elements['metric-customer-rate'].textContent==='33.3'&&f.elements['metric-developer-rate'].textContent==='66.7');
+  check('one hundred percent renders correctly',f.elements['metric-engagement-rate'].textContent==='100');
  }
  {
   const f=await run({data:{value:0},counts:{customer:0,developer:0,engaged:0}});
-  check('zero visits shows safe zero rates',['metric-customer-rate','metric-developer-rate','metric-engagement-rate'].every(id=>f.elements[id].textContent==='0%'));
+  check('zero visits shows safe zero rates',['metric-customer-rate','metric-developer-rate','metric-engagement-rate'].every(id=>f.elements[id].textContent==='0'));
  }
  {
   const f=await run({counts:{customer:30}});
-  check('aggregate ratio not silently capped',f.elements['metric-customer-rate'].textContent==='120%');
+  check('aggregate ratio not silently capped',f.elements['metric-customer-rate'].textContent==='120');
  }
  console.log(reports.length+' external visit, engagement and rate checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

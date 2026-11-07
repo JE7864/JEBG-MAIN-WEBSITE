@@ -11,7 +11,7 @@ The footer shows ONLY eight numeric figures, in this order:
 7. Engaged visits reaching 75% of page depth.
 8. Engagement rate.
 
-No permanent labels, headings or icons are added. Counts and averages use numeric text; rates include a % sign. Desktop uses eight columns; tablet/mobile uses four columns across two rows, preserving the same reading order. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
+No permanent labels, headings or icons are added. All eight figures use numeric text, including rates. Percent units are retained only in hover titles and accessible labels. Desktop uses eight columns; tablet/mobile uses four columns across two rows, preserving the same reading order. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
 
 ## Activation
 
@@ -36,9 +36,9 @@ Customer form-start rate = customer starts ÷ recorded page visits × 100.
 Developer form-start rate = developer starts ÷ recorded page visits × 100.
 Engagement rate = engaged visits ÷ recorded page visits × 100.
 
-These are calculated in the browser from the same four existing totals, formatted as percentages with up to one decimal, and refreshed on successful counter updates. No new counter keys, API requests, backend functions or tracking events are needed. The existing visit history and daily-average start date are preserved.
+These are calculated in the browser from the same four existing totals, formatted as percentage values with up to one decimal and no visible percent sign, and refreshed on successful counter updates. No new counter keys, API requests, backend functions or tracking events are needed. The existing visit history and daily-average start date are preserved.
 
-With zero recorded visits, rates display 0% as an empty-baseline convention instead of NaN/Infinity. Ratios are not capped at 100%; independent public counts, network failures, timing differences or external modifications can produce values above 100%, and silently capping would conceal the data.
+With zero recorded visits, rates display 0 as an empty-baseline convention instead of NaN/Infinity. Ratios are not capped at 100%; independent public counts, network failures, timing differences or external modifications can produce values above 100%, and silently capping would conceal the data.
 
 These are cumulative aggregate ratios, not matched-cohort conversion measurements. All key names use the 7 November 2026 release date, but engagement tracking was enabled later than visit tracking on that day. Earlier actions cannot be reconstructed. The engaged figure counts visits reaching the threshold; it does not identify individual customers or prove that an enquiry was saved.
 

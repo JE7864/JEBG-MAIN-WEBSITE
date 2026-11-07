@@ -1,10 +1,10 @@
 name: Backend and admin checks
 on:
   pull_request:
-    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', '.github/workflows/admin-checks.yml']
+    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', 'docs/robots.txt', 'docs/sitemap.xml', 'docs/media/jebg-mark.svg', '.github/workflows/admin-checks.yml']
   push:
     branches: [main]
-    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', '.github/workflows/admin-checks.yml']
+    paths: ['backend/**', 'tests/**', 'docs/index.html', 'docs/admin/**', 'docs/backend-config.json', 'docs/robots.txt', 'docs/sitemap.xml', 'docs/media/jebg-mark.svg', '.github/workflows/admin-checks.yml']
 permissions:
   contents: read
 jobs:
@@ -27,13 +27,18 @@ jobs:
         run: node tests/visits.test.cjs
       - name: Configured admin access checks
         run: node tests/admin-launcher.test.cjs
+      - name: SEO metadata, sitemap and crawler checks
+        run: node tests/seo.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'
           const fs=require('node:fs');
           for(const path of ['backend/Admin.html','docs/admin/index.html','docs/index.html']){
             const text=fs.readFileSync(path,'utf8');
-            for(const match of text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))new Function(match[1]);
+            for(const match of text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
+              if(/\btype=["']application\/ld\+json["']/i.test(match[1]))JSON.parse(match[2]);
+              else new Function(match[2]);
+            }
             const ids=[...text.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]);
             if(new Set(ids).size!==ids.length)throw Error(path+': duplicate IDs');
             console.log(path+': syntax and IDs passed');

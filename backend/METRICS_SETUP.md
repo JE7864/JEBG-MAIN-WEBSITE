@@ -1,35 +1,27 @@
-# Numbers-only footer metrics — activation
+# Public footer visits (no Apps Script update)
 
-The public footer shows four numbers, in this order: page visits, average visits per IST calendar day, saved customer enquiries, saved developer applications. No visible heading, description or icon is added. Native hover titles and accessible names identify the figures. The strip stays hidden until a valid response arrives, so an unavailable backend does not display invented zeros.
+The website now shows ONLY two numbers: total recorded page visits and average per IST calendar day. No descriptions or icons are permanently visible; accessible names and hover titles explain the figures.
 
-## Activate in the existing bound Apps Script project
+## Activation
 
-1. Copy updated backend/Code.gs into your existing Code.gs.
-2. Add a Script file named Metrics (Metrics.gs) and paste backend/Metrics.gs.
-3. Save. Keep Settings.gs, Email.gs, Admin.gs, Admin1.html, Script Properties, active spreadsheet ID and existing triggers unchanged.
-4. Update the EXISTING PUBLIC web app deployment to a New version. Preserve its URL, Execute as Me, access Anyone. No private-admin deployment update, new OAuth scope or URL change is required for metrics.
-5. Reload the public website. The numbers should appear at the bottom after the visit request and aggregate response finish. Submit one marked test of each form, confirm the stored records, then reload after up to 60 seconds to check the submission figures.
+No action is needed in Apps Script, Google Sheets or the admin dashboard. GitHub Pages publishes this website-only integration after merge. The previous instructions to install Metrics.gs and update Code.gs are superseded for this footer. Do not install or redeploy anything solely for the visit counter.
 
-GitHub merging alone cannot deploy Apps Script. Until step 4, the public endpoint serves its older GET response and the strip remains hidden. Do not change spreadsheet headers or timezone for this update.
+## Counting
 
-## Meaning of the figures
+The page calls https://countapi.mileshilliard.com/api/v1/hit/jebg_main_website_visits_20261107 exactly once per page load on jebg.jamilaexim.com. The external Count API service stores and increments the public numeric total. It needs no account or secret key. This is the same external-service pattern as the USSS badge, but a numeric API permits the average to be calculated locally. It does not use Hits.sh, whose statistics endpoint did not allow browser cross-origin reads during verification.
 
-- Visits: one successful client-reported page load, including refresh, from activation onward. The browser creates a random per-load UUID. Retry IDs are deduplicated using Script Cache for up to six hours. Cache eviction, blocked scripts, network failures, browser automation and endpoint abuse can affect counts; this is a lightweight page-load counter, not audited analytics or unique-person tracking.
-- Average: total visits divided by the number of IST calendar days since the first recorded visit, including today, rounded to one decimal. It is not a rolling 24-hour figure. Traffic before activation is unknown and is not fabricated.
-- Customer/developer counts: distinct nonblank saved references in the corresponding tabs of the active spreadsheet, cached for up to 60 seconds. Existing historical records in that sheet are included. Duplicate requests do not add a reference. These figures represent records retained in the current database, not unsuccessful clicks; deleting records reduces the figure. Normal migration preserves the records and changes the cache key to the destination's ID.
+The dedicated key starts at this release on 7 November 2026. Average = total divided by inclusive IST calendar days since 7 November 2026, rounded to one decimal. Empty/no-traffic days count in that period. No earlier traffic or old experimental backend-counter values are fabricated or imported. Keep the key and launch date paired and unchanged for consistent reporting.
 
-Visit aggregates (count and first date only) live in the existing project's Script Properties under JEBG_PUBLIC_VISITS_V1, independent of the active data spreadsheet. Do not remove this property during sheet migration. No raw page-load IDs are persisted in the spreadsheet or properties; the short-lived random IDs are only in Script Cache. No IP address, email, name, cookie, persistent visitor ID or fingerprint is collected by this implementation. Requests are handled by Google under its platform policies.
+Refreshes count as page loads. This is a lightweight public page-load figure, not verified unique people or audited analytics. Scripts blocked by browser/network policy, service downtime, rate limiting and public counter modifications can affect results. Keys are public; the provider supports public operations, so do not use this figure for billing or authoritative reporting. Do not automatically retry failed increment requests: a timed-out request might already have counted.
 
-## Public endpoint and privacy boundary
+Only the numeric count is requested. No names, emails, form fields, Google URLs, cookies or browser storage IDs are sent by our code; credentials and referrer are omitted. As with any external request, the provider receives network-level information under its policies. No external JavaScript library is loaded: the response is JSON.
 
-GET ?page=stats is read-only and returns only schema version, four aggregate values and first tracking date through the FIXED window.jebgFooterStats callback. Callback/query values cannot inject JavaScript. Errors return only an unavailable flag. No sheet ID, record references, private columns, request fields, consent, admin URLs or settings are returned. The visitor's POST event only updates the isolated visit property; it does not write form rows or send mail.
-
-Google ContentService's standard redirect is followed by browser script loading. The website uses an anonymous no-cors POST for the visit and reads public aggregates through a script tag; credentials are omitted on POST. Google documents JSONP for non-sensitive, read-only content. The visit event is a separate POST route. There is no new third-party analytics service.
-
-Existing form POST, payload, request deduplication, confirmations, email queue, signature, admin owner checks, IST behavior, media and custom domain are unchanged. No backend form-submission code is repurposed as a click counter.
+If requests fail or return invalid data, the two figures stay hidden rather than showing fake zeroes. Site functionality and form submissions continue independently. Preview/local hosts do not increment the production counter.
 
 ## Validation
 
-node tests/metrics.test.cjs covers counting, retry deduplication, active-sheet totals, cache use, failure behavior, read-only GET, fixed callback, output privacy, IST midnight/day average and numbers-only accessible rendering. Existing storage/email/admin/timezone regression suites also run in GitHub Actions.
+GitHub Actions verified the provider's status endpoint returned HTTP 200 and permitted the Origin https://jebg.jamilaexim.com. A read-only query for the new key returned HTTP 404 with the same permitted origin, confirming an unused key without adding fake production visits. The temporary provider probes are removed from final CI; ordinary tests use mocks and never increment the production counter.
 
-Live Google deployment, cross-origin browser delivery, actual counter activation and rendered desktop/mobile layout must be checked after owner deployment. Do not repeatedly send test visits directly to the production endpoint during source validation.
+tests/visits.test.cjs checks exactly two visible numbers, numeric response validation, one request per load, no retry, no Google statistics calls, IST day averages/midnight and failure/preview behavior. Existing backend regression tests remain intact. Legacy backend/Metrics.gs is unused by the website; existing deployments and stored data are unchanged.
+
+Provider documentation: https://countapi.mileshilliard.com/ and https://github.com/syntaxerror019/countapi.

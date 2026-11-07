@@ -23,6 +23,8 @@ jobs:
         run: node tests/timezone.test.cjs
       - name: Footer metrics and public-output privacy checks
         run: node tests/metrics.test.cjs
+      - name: External visit counter checks
+        run: node tests/visits.test.cjs
       - name: Inline JavaScript and unique HTML identifiers
         run: |
           node <<'NODE'
@@ -35,17 +37,4 @@ jobs:
             console.log(path+': syntax and IDs passed');
           }
           if(fs.readFileSync('docs/CNAME','utf8').trim()!=='jebg.jamilaexim.com')throw Error('Custom domain changed');
-          NODE
-
-      - name: Verify external counter browser support
-        run: |
-          node <<'NODE'
-          (async()=>{
-            for(const url of ['https://countapi.mileshilliard.com/api/v1/status','https://countapi.mileshilliard.com/api/v1/get/jebg_main_website_visits_20261107']){
-              try{
-                const r=await fetch(url,{headers:{Origin:'https://jebg.jamilaexim.com'},signal:AbortSignal.timeout(15000)});
-                console.log(JSON.stringify({url,status:r.status,cors:r.headers.get('access-control-allow-origin'),type:r.headers.get('content-type'),body:(await r.text()).slice(0,500)}));
-              }catch(error){console.log(JSON.stringify({url,error:error.message}));}
-            }
-          })();
           NODE

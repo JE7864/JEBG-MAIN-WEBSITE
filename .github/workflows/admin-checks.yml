@@ -37,14 +37,14 @@ jobs:
           if(fs.readFileSync('docs/CNAME','utf8').trim()!=='jebg.jamilaexim.com')throw Error('Custom domain changed');
           NODE
 
-      - name: Verify external counter service browser support
+      - name: Verify external counter browser support
         run: |
           node <<'NODE'
           (async()=>{
-            for(const url of ['https://hits.sh/api/urns/usss.jamilaexim.com','https://counterapi.com/api/jebg.jamilaexim.com/view/home-2026-11-07?readOnly=true']){
+            for(const url of ['https://countapi.mileshilliard.com/api/v1/status','https://countapi.mileshilliard.com/api/v1/get/jebg_main_website_visits_20261107']){
               try{
-                const response=await fetch(url,{headers:{Origin:'https://jebg.jamilaexim.com'},signal:AbortSignal.timeout(15000)});
-                console.log(JSON.stringify({url,status:response.status,cors:response.headers.get('access-control-allow-origin'),type:response.headers.get('content-type'),body:(await response.text()).slice(0,300)}));
+                const r=await fetch(url,{headers:{Origin:'https://jebg.jamilaexim.com'},signal:AbortSignal.timeout(15000)});
+                console.log(JSON.stringify({url,status:r.status,cors:r.headers.get('access-control-allow-origin'),type:r.headers.get('content-type'),body:(await r.text()).slice(0,500)}));
               }catch(error){console.log(JSON.stringify({url,error:error.message}));}
             }
           })();

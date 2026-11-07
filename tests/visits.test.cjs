@@ -32,15 +32,16 @@ function create(options={}){
 }
 async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
- const markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
- check('small heading with eight numeric values',markup.replace(/<[^>]*>/g,'')==='Website activity00000000');
+ const markup=html.slice(html.indexOf('<div class="footer-metrics"'),html.indexOf('</footer>',html.indexOf('<div class="footer-metrics"')));
+ const cells=[...markup.matchAll(/<div class="activity-cell">(<span[^>]*>[\s\S]*?<\/span>)<small>([^<]+)<\/small><\/div>/g)];
+ check('CMS-style heading, launch date and eight labelled figures',markup.includes('Website activity')&&markup.includes('Since 7 Nov 2026')&&cells.length===8&&cells.every(m=>m[1].replace(/<[^>]*>/g,'')==='0')&&JSON.stringify(cells.map(m=>m[2]))===JSON.stringify(['Visits','Daily average','Customer starts','Customer rate','Developer starts','Developer rate','Engaged visits','Engagement rate']));
  check('exact requested DOM order',JSON.stringify([...markup.matchAll(/<span id="([^"]+)"/g)].map(m=>m[1]))===JSON.stringify(['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate']));
  check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
  check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
  check('independent of Google backend config',!client.includes('googleWebAppUrl')&&!client.includes('backendConnectionReady'));
  check('strip hidden until valid values',/\bhidden>/.test(markup));
  check('eight keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===8);
- check('compact four-column grid, right-aligned desktop box and full-width mobile',html.includes('.footer-metrics-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))')&&html.includes('max-width:100%;margin-left:auto')&&html.includes('width:100%;max-width:none;margin-left:0'));
+ check('reference-style full-width row and narrow-screen horizontal scroll',html.includes('width:100%;margin:22px 0 0;padding:15px 0 0;border:0;border-top:1px solid #28485c')&&html.includes('grid-template-columns:repeat(8,minmax(0,1fr))')&&html.includes('grid-template-columns:repeat(8,minmax(92px,1fr));overflow-x:auto'));
  {
   const f=await run();check('one visit increment on load',f.hits('visits').length===1);check('engagement totals only read on load',f.requests.filter(r=>r.readOnly).length===3&&f.hits().length===1);
   check('fixed verified provider endpoint',f.requests.every(r=>r.url.startsWith('https://countapi.mileshilliard.com/api/v1/')));

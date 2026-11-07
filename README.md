@@ -27,3 +27,7 @@ A responsive navy/cyan dashboard provides actual enquiry/application totals, sea
 The guided sheet migration checks headers and UTC timestamps, previews differences, copies missing managed rows and verifies them before activating the destination. The source remains intact. Keep the original bound spreadsheet because the script project still resides there.
 
 **Activation is required:** follow [backend/ADMIN_SETUP.md](backend/ADMIN_SETUP.md). Create a separate Google-authenticated, user-executed admin deployment while preserving the public owner-executed submission deployment. Merging GitHub source alone does not activate the dashboard or dynamic sheet routing. The public launcher is docs/admin/index.html; docs/backend-config.json holds only nonsecret endpoint references.
+
+## Indian Standard Time (1.3.1 source)
+
+The dashboard displays dates in Asia/Kolkata (IST, UTC+05:30). Backend settings provides an owner-only Apply IST control that preserves original timestamp instants while converting managed spreadsheet date columns and headers. Update both existing Apps Script deployments before applying it. Keep the active-sheet Script Properties and existing URLs. See the Indian Standard Time activation steps in [backend/ADMIN_SETUP.md](backend/ADMIN_SETUP.md); no live spreadsheet has been changed by this source update.

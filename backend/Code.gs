@@ -1,4 +1,4 @@
-/** JEBG Website Google Sheets backend, v1.3.0.
+/** JEBG Website Google Sheets backend, v1.3.1.
  * Bound to the private JEBG website spreadsheet. Public submissions and a separately authenticated owner workspace.
  * Deploy as a Web app, Execute as Me, access Anyone. Keep the sheet Restricted.
  * Transactional emails are queued only after the request is stored.
@@ -9,7 +9,7 @@ const JEBG_CONFIG = Object.freeze({
   contact: 'jamilaexim786vector@gmail.com',
   maxDailySubmissions: 500,
   maxPerEmailPerHour: 10,
-  version: '1.3.0'
+  version: '1.3.1'
 });
 const JEBG_CONSENT = {
   customer: 'I would like to receive relevant JEBG product updates and promotional communications by email. I can withdraw this preference at any time.',
@@ -44,7 +44,7 @@ const JEBG_SCHEMA = {
     ],
     "headers": [
       "Reference",
-      "Submitted At UTC",
+      "Submitted At IST",
       "Name",
       "Company",
       "Email",
@@ -58,10 +58,10 @@ const JEBG_SCHEMA = {
       "Updates Opt-in",
       "Consent Text",
       "Consent Version",
-      "Consent At UTC",
+      "Consent At IST",
       "Status",
       "Notes",
-      "Updated At UTC",
+      "Updated At IST",
       "Source",
       "Request ID",
       "Dedupe Hash"
@@ -93,7 +93,7 @@ const JEBG_SCHEMA = {
     ],
     "headers": [
       "Reference",
-      "Submitted At UTC",
+      "Submitted At IST",
       "Name",
       "Email",
       "Location",
@@ -106,10 +106,10 @@ const JEBG_SCHEMA = {
       "Updates Opt-in",
       "Consent Text",
       "Consent Version",
-      "Consent At UTC",
+      "Consent At IST",
       "Status",
       "Notes",
-      "Updated At UTC",
+      "Updated At IST",
       "Source",
       "Request ID",
       "Dedupe Hash"
@@ -120,7 +120,7 @@ const JEBG_SCHEMA = {
 /** Run once in the Apps Script editor. This preserves all existing rows. */
 function setupJebgBackend_() {
   const book = SpreadsheetApp.openById(activeSpreadsheetId_());
-  book.setSpreadsheetTimeZone('Etc/UTC');
+  applyIndianTime_(book);
   Object.keys(JEBG_SCHEMA).forEach(function (kind) {
     const schema = JEBG_SCHEMA[kind], sheet = book.getSheetByName(schema.tab);
     if (!sheet) throw new Error('Missing tab: ' + schema.tab);
@@ -216,7 +216,7 @@ function saveSubmission_(input) {
 
 function assertHeaders_(sheet, schema) {
   const actual = sheet.getRange(1, 1, 1, schema.headers.length).getDisplayValues()[0];
-  if (actual.some(function (value, index) { return value !== schema.headers[index] })) throw new Error('Storage headers changed');
+  if (actual.some(function (value, index) { return !headerMatches_(value,schema.headers[index]) })) throw new Error('Storage headers changed');
 }
 function literal_(value) { return /^[\s]*[=+@-]/.test(value) ? "'" + value : value; }
 function sha256_(value) { return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, value, Utilities.Charset.UTF_8).map(function (b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2) }).join(''); }

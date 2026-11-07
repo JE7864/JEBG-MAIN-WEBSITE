@@ -7,9 +7,9 @@ const hashBytes=s=>Array.from(crypto.createHash('sha256').update(s).digest());
 const reports=[];function check(n,v){if(!v)throw Error(n);reports.push(n);}function rejects(n,fn,pattern){let err;try{fn();}catch(e){err=e;}check(n,!!err&&(!pattern||pattern.test(err.message)));}
 function fixture(){
  const props=new Map(),cache=new Map(),books={},sent=[];let user='jamilaexim786vector@gmail.com',uid=0,opens=0,failWrite=false;
- function sheet(name,data){let rows=data.map(r=>r.slice());const s={name,rows,getName:()=>name,getLastRow:()=>rows.length,getMaxRows:()=>1000,getMaxColumns:()=>30,insertRowsAfter(){},insertColumnsAfter(){},setFrozenRows(){},setFrozenColumns(){},setRowHeight(){},getFilter:()=>true,getSheetId:()=>1,getRange(r,c,n,w){const range={getValues:()=>Array.from({length:n},(_,i)=>Array.from({length:w},(_,j)=>rows[r-1+i]?.[c-1+j]??'')),getDisplayValues:()=>range.getValues().map(row=>row.map(String)),setValues(vals){if(failWrite)throw Error('write failed');vals.forEach((row,i)=>{rows[r-1+i]??=[];row.forEach((v,j)=>rows[r-1+i][c-1+j]=v);});return range;},setBackground(){return range;},setFontWeight(){return range;},setWrap(){return range;},createFilter(){return range;}};return range;}};return s;}
- function book(id,schemas=true){const tabs={},b={id,tabs,zone:'Etc/UTC',getName:()=>id,getUrl:()=>'https://docs.google.com/spreadsheets/d/'+id,getSpreadsheetTimeZone:()=>b.zone,setSpreadsheetTimeZone:z=>b.zone=z,getSheets:()=>Object.values(tabs),getSheetByName:n=>tabs[n]||null,insertSheet:n=>tabs[n]=sheet(n,[])};books[id]=b;if(schemas)api.adminSpecs_().forEach(s=>tabs[s.name]=sheet(s.name,[s.headers]));return b;}
- const api=new Function('Session','CacheService','PropertiesService','SpreadsheetApp','Utilities','LockService','MailApp','ScriptApp','HtmlService',CODE+';return {adminSpecs_,adminBootstrap,adminConnection,adminOverview,adminListRecords,adminGetRecord,adminUpdateRecord,adminNotifications,adminTestDestination,adminPrepareDestination,adminPreviewMigration,adminActivateDestination,adminSaveIntegration,adminPage_,activeSpreadsheetId_,backendSettings_,spreadsheetId_,webAppUrl_,saveSubmission_,storedEmailRecord_,schema:JEBG_SCHEMA,email:JEBG_EMAIL};')(
+ function sheet(name,data){let rows=data.map(r=>r.slice());const s={name,rows,getName:()=>name,getLastRow:()=>rows.length,getMaxRows:()=>1000,getMaxColumns:()=>30,insertRowsAfter(){},insertColumnsAfter(){},setFrozenRows(){},setFrozenColumns(){},setRowHeight(){},getFilter:()=>true,getSheetId:()=>1,getRange(r,c,n,w){const range={getValues:()=>Array.from({length:n},(_,i)=>Array.from({length:w},(_,j)=>rows[r-1+i]?.[c-1+j]??'')),getDisplayValues:()=>range.getValues().map(row=>row.map(String)),getFormulas:()=>Array.from({length:n},()=>Array(w).fill('')),getNumberFormats:()=>Array.from({length:n},()=>Array(w).fill('yyyy-mm-dd hh:mm:ss')),setNumberFormats(){return range;},setNumberFormat(){return range;},setValues(vals){if(failWrite)throw Error('write failed');vals.forEach((row,i)=>{rows[r-1+i]??=[];row.forEach((v,j)=>rows[r-1+i][c-1+j]=v);});return range;},setBackground(){return range;},setFontWeight(){return range;},setWrap(){return range;},createFilter(){return range;}};return range;}};return s;}
+ function book(id,schemas=true){const tabs={},b={id,tabs,zone:'Asia/Kolkata',getName:()=>id,getUrl:()=>'https://docs.google.com/spreadsheets/d/'+id,getSpreadsheetTimeZone:()=>b.zone,setSpreadsheetTimeZone:z=>b.zone=z,getSheets:()=>Object.values(tabs),getSheetByName:n=>tabs[n]||null,insertSheet:n=>tabs[n]=sheet(n,[])};books[id]=b;if(schemas)api.adminSpecs_().forEach(s=>tabs[s.name]=sheet(s.name,[s.headers]));return b;}
+ const api=new Function('Session','CacheService','PropertiesService','SpreadsheetApp','Utilities','LockService','MailApp','ScriptApp','HtmlService',CODE+';return {adminSpecs_,adminBootstrap,adminConnection,adminOverview,adminListRecords,adminGetRecord,adminUpdateRecord,adminNotifications,adminTestDestination,adminPrepareDestination,adminPreviewMigration,adminActivateDestination,adminSaveIntegration,adminApplyIndianTime,adminPage_,activeSpreadsheetId_,backendSettings_,spreadsheetId_,webAppUrl_,saveSubmission_,storedEmailRecord_,schema:JEBG_SCHEMA,email:JEBG_EMAIL};')(
  {getActiveUser:()=>({getEmail:()=>user})},
  {getUserCache:()=>({get:k=>cache.get(k),put:(k,v)=>cache.set(k,v)}),getScriptCache:()=>({get:()=>null,put(){}})},
  {getScriptProperties:()=>({getProperty:k=>props.get(k)||null,setProperty:(k,v)=>props.set(k,v)})},
@@ -26,7 +26,7 @@ function fixture(){
 }
 {
  const f=fixture();check('default sheet preserved',f.api.activeSpreadsheetId_()===f.source.id);
- const protectedCalls=['adminConnection','adminOverview','adminListRecords','adminGetRecord','adminUpdateRecord','adminNotifications','adminTestDestination','adminPrepareDestination','adminPreviewMigration','adminActivateDestination','adminSaveIntegration'];
+ const protectedCalls=['adminApplyIndianTime','adminConnection','adminOverview','adminListRecords','adminGetRecord','adminUpdateRecord','adminNotifications','adminTestDestination','adminPrepareDestination','adminPreviewMigration','adminActivateDestination','adminSaveIntegration'];
  for(const identity of ['', 'other@example.com']){f.setUser(identity);for(const name of protectedCalls)rejects('deny '+name+' for '+(identity||'anonymous'),()=>f.api[name]('forged'),/Access denied/);rejects('deny bootstrap '+identity,()=>f.api.adminBootstrap(),/Access denied/);check('denied page contains no data '+identity,f.api.adminPage_().html!=='private');}
  check('unauthorized calls never open spreadsheet',f.getOpens()===0);
  f.setUser('jamilaexim786vector@gmail.com');rejects('expired token denied',()=>f.api.adminOverview('expired'),/expired/);
@@ -76,10 +76,21 @@ function fixture(){
  const f=fixture(),token=f.api.adminBootstrap().token,q=f.api.email;f.source.tabs[q.sheet].rows.push(['REF','customer','admin','owner@example.com','Sending']);check('in-flight email blocks activation',!f.api.adminPreviewMigration(token,f.target.id).canActivate);
 }
 {
- const f=fixture(),token=f.api.adminBootstrap().token,b=f.book('unprepared_12345678901234567890',false);b.zone='Asia/Kolkata';
+ const f=fixture(),token=f.api.adminBootstrap().token,b=f.book('unprepared_12345678901234567890',false);b.zone='Etc/UTC';
  rejects('timezone change requires confirmation',()=>f.api.adminPrepareDestination(token,b.id,false),/Confirm/);
  check('prepare creates compatible destination',f.api.adminPrepareDestination(token,b.id,true).compatible);check('prepare does not activate',f.api.activeSpreadsheetId_()===f.source.id);
  f.target.tabs['Customer Enquiries'].rows[0][0]='Wrong';const snap=JSON.stringify(f.target.tabs);rejects('incompatible headers preserved',()=>f.api.adminPrepareDestination(token,f.target.id,false),/headers differ/);check('no mutations on header mismatch',JSON.stringify(f.target.tabs)===snap);
+}
+
+{
+ const f=fixture(),token=f.api.adminBootstrap().token;
+ rejects('IST change requires confirmation',()=>f.api.adminApplyIndianTime(token,false),/Confirm/);
+ const row=f.record('customer'),instant=row[1].getTime(),snapshot=row.slice();
+ const connection=f.api.adminApplyIndianTime(token,true);
+ check('owner can apply IST',connection.timezone==='Asia/Kolkata');
+ check('IST keeps request content and instants',row.every((v,i)=>v instanceof Date?v.getTime()===snapshot[i].getTime():v===snapshot[i])&&row[1].getTime()===instant);
+ f.api.adminApplyIndianTime(token,true);
+ check('repeated IST application does not shift timestamps',row[1].getTime()===instant);
 }
 console.log(reports.length+' admin checks passed.');
 return reports;

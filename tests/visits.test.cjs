@@ -4,54 +4,103 @@ const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8');
 const marker=html.indexOf('// Public visit figures use an external counter;');
 const client=html.slice(html.indexOf('(async function()',marker),html.indexOf('</script>',marker));
 const reports=[];function check(n,v){if(!v)throw Error(n);reports.push(n);}
-async function run(options={}){
- const elements={'footer-metrics':{hidden:true},'metric-visits':{textContent:'0',setAttribute(k,v){this[k]=v;}},'metric-daily':{textContent:'0',setAttribute(k,v){this[k]=v;}}},requests=[],timers=[],cleared=[];
+function create(options={}){
+ const requests=[],timers=[],cleared=[],frames=[],winEvents={},docEvents={},formEvents={},counts={visits:24,customer:3,developer:4,engaged:5,...options.counts},missing=new Set(options.missing||[]);
+ const elements={'footer-metrics':{hidden:true}};
+ ['metric-visits','metric-daily','metric-customer-starts','metric-developer-starts','metric-engaged'].forEach(id=>elements[id]={textContent:'0',setAttribute(k,v){this[k]=v;}});
+ ['enquiry','expert-form'].forEach(id=>{formEvents[id]={};elements[id]={addEventListener(type,fn){formEvents[id][type]=fn;}};});
+ const doc={visibilityState:'visible',documentElement:{scrollHeight:options.height||1000},body:{scrollHeight:options.bodyHeight||1000},getElementById:id=>{if(!elements[id])throw Error('Unexpected element '+id);return elements[id];},addEventListener:(type,fn)=>docEvents[type]=fn};
+ const win={scrollY:0,innerHeight:options.viewport||200,addEventListener:(type,fn)=>winEvents[type]=fn};
  const Clock=class extends Date{constructor(...args){super(...(args.length?args:[options.now||'2026-11-07T12:00:00Z']));}};
  const Abort=class{constructor(){this.signal={};}abort(){this.signal.aborted=true;}};
- const promise=new Function('document','location','fetch','AbortController','setTimeout','clearTimeout','Date','Intl','return '+client)(
- {getElementById:id=>{if(!elements[id])throw Error('Unexpected element: '+id);return elements[id];}},
- {hostname:options.host||'jebg.jamilaexim.com'},
- async(url,init)=>{requests.push({url,init});if(options.networkError)throw Error('network unavailable');return {ok:options.ok!==false,json:async()=>{if(options.jsonError)throw Error('bad JSON');return options.data===undefined?{value:'25'}:options.data;}};},
- Abort,fn=>{timers.push(fn);return timers.length;},id=>cleared.push(id),Clock,Intl);
- await promise;return {elements,requests,timers,cleared};
+ const kindOf=url=>url.includes('customer_starts')?'customer':url.includes('developer_starts')?'developer':url.includes('engaged_depth')?'engaged':'visits';
+ const ready=new Function('document','window','location','fetch','AbortController','setTimeout','clearTimeout','requestAnimationFrame','Date','Intl','return '+client)(
+ doc,win,{hostname:options.host||'jebg.jamilaexim.com'},
+ async(url,init)=>{
+  const kind=kindOf(url),readOnly=url.includes('/get/');requests.push({url,init,kind,readOnly});
+  if(options.networkError)throw Error('network unavailable');
+  if(options.ok===false)return {ok:false,status:503,json:async()=>({error:'unavailable'})};
+  if(readOnly&&missing.has(kind))return {ok:false,status:404,json:async()=>({error:options.missingMessage||'Key not found'})};
+  if(!readOnly){counts[kind]++;missing.delete(kind);}
+  return {ok:true,status:200,json:async()=>{if(options.jsonError)throw Error('bad JSON');return kind==='visits'&&options.data!==undefined?options.data:{value:String(counts[kind])};}};
+ },
+ Abort,fn=>{timers.push(fn);return timers.length;},id=>cleared.push(id),fn=>frames.push(fn),Clock,Intl);
+ const flush=async()=>{while(frames.length)frames.shift()();for(let i=0;i<12;i++)await Promise.resolve();};
+ const emit=(id,type,field={},trusted=true)=>formEvents[id][type]({isTrusted:trusted,target:{tagName:'INPUT',name:'name',type:'text',value:'Private typed text',...field}});
+ const hits=kind=>requests.filter(r=>!r.readOnly&&(!kind||r.kind===kind));
+ return {ready,elements,requests,timers,cleared,doc,win,winEvents,docEvents,formEvents,flush,emit,hits,counts};
 }
+async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
  const markup=html.match(/<div class="footer-metrics"[^>]*>[\s\S]*?<\/div>/)[0];
- check('only two numbers in visible markup',/^00$/.test(markup.replace(/<[^>]*>/g,'')));
- check('no form-submission counters remain',!html.includes('metric-customers')&&!html.includes('metric-developers'));
- check('no Google stats endpoint or visit event',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
- check('counter independent of Google endpoint config',!client.includes('googleWebAppUrl')&&!client.includes('backendConnectionReady'));
- check('counter starts hidden',/\bhidden>/.test(markup));
- check('two keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===2);
+ check('only five numbers in visible markup',/^00000$/.test(markup.replace(/<[^>]*>/g,'')));
+ check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
+ check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
+ check('independent of Google backend config',!client.includes('googleWebAppUrl')&&!client.includes('backendConnectionReady'));
+ check('strip hidden until valid values',/\bhidden>/.test(markup));
+ check('five keyboard-accessible labelled values',(markup.match(/tabindex="0" aria-label=/g)||[]).length===5);
  {
-  const f=await run();check('one increment per page load',f.requests.length===1);check('verified public external endpoint',f.requests[0].url==='https://countapi.mileshilliard.com/api/v1/hit/jebg_main_website_visits_20261107');
-  check('credentials omitted',f.requests[0].init.credentials==='omit');check('referrer omitted',f.requests[0].init.referrerPolicy==='no-referrer');
-  check('no form fields or request body sent',!f.requests[0].init.body);check('no executable third-party script',!client.includes('createElement'));
-  check('string API count rendered',f.elements['metric-visits'].textContent==='25');check('launch-day average denominator one',f.elements['metric-daily'].textContent==='25');
-  check('real response reveals strip',!f.elements['footer-metrics'].hidden);check('hover and screen reader labels available',f.elements['metric-visits'].title.includes('Recorded page visits')&&f.elements['metric-daily']['aria-label'].includes('Average page visits'));
-  check('timeout cleared',f.cleared.length===1);
+  const f=await run();check('one visit increment on load',f.hits('visits').length===1);check('engagement totals only read on load',f.requests.filter(r=>r.readOnly).length===3&&f.hits().length===1);
+  check('fixed verified provider endpoint',f.requests.every(r=>r.url.startsWith('https://countapi.mileshilliard.com/api/v1/')));
+  check('credentials and referrer omitted',f.requests.every(r=>r.init.credentials==='omit'&&r.init.referrerPolicy==='no-referrer'));
+  check('no form contents sent',f.requests.every(r=>!r.init.body)&&!JSON.stringify(f.requests).includes('Private typed text'));
+  check('no third-party executable scripts',!client.includes('createElement'));
+  check('five actual figures displayed',f.elements['metric-visits'].textContent==='25'&&f.elements['metric-daily'].textContent==='25'&&f.elements['metric-customer-starts'].textContent==='3'&&f.elements['metric-developer-starts'].textContent==='4'&&f.elements['metric-engaged'].textContent==='5');
+  check('valid figures reveal strip',!f.elements['footer-metrics'].hidden);
+  check('tooltips and accessible names identify starts',f.elements['metric-customer-starts'].title.includes('form starts')&&f.elements['metric-engaged']['aria-label'].includes('75%'));
+  check('timeouts cleared',f.cleared.length===4);
+  f.emit('enquiry','input');await f.flush();check('customer typing counts one start',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='4');
+  f.emit('enquiry','input',{name:'email',value:'secret@example.com'});f.emit('enquiry','change');await f.flush();check('customer edits and change events do not count twice',f.hits('customer').length===1);
+  f.emit('expert-form','input',{tagName:'TEXTAREA',name:'message'});await f.flush();check('developer tracked independently',f.hits('developer').length===1&&f.elements['metric-developer-starts'].textContent==='5');
+  check('typed values never appear in requests',!JSON.stringify(f.requests).includes('secret@example.com')&&!JSON.stringify(f.requests).includes('Private typed text'));
+  f.win.scrollY=549;f.winEvents.scroll();await f.flush();check('below 75 percent does not engage',f.hits('engaged').length===0);
+  f.win.scrollY=550;f.winEvents.scroll();await f.flush();check('exactly 75 percent counts engagement',f.hits('engaged').length===1&&f.elements['metric-engaged'].textContent==='6');
+  f.win.scrollY=800;f.winEvents.scroll();f.winEvents.resize();await f.flush();check('repeated scroll and resize count once',f.hits('engaged').length===1);
+ }
+ for(const field of [{value:''},{value:'  '},{name:'website'},{type:'hidden'},{type:'checkbox'},{type:'radio'},{disabled:true},{tagName:'DIV'},{name:''}]){
+  const f=await run();f.emit('enquiry','input',field);await f.flush();check('ignored field '+JSON.stringify(field),f.hits('customer').length===0);
  }
  {
-  const f=await run({data:{value:5},now:'2026-11-08T12:00:00Z'});check('second-day average correct',f.elements['metric-daily'].textContent==='2.5');
+  const f=await run();f.emit('enquiry','input',{},false);await f.flush();check('synthetic programmatic events ignored',f.hits('customer').length===0);
+  f.emit('enquiry','change',{tagName:'SELECT',name:'product',type:'select-one',value:'JEBG USSS'});await f.flush();check('genuine nonempty selection starts form',f.hits('customer').length===1);
  }
  {
-  const before=await run({data:{value:4},now:'2026-11-07T18:29:00Z'}),after=await run({data:{value:4},now:'2026-11-07T18:31:00Z'});
-  check('IST midnight changes denominator',before.elements['metric-daily'].textContent==='4'&&after.elements['metric-daily'].textContent==='2');
+  const f=await run({now:'2026-11-08T12:00:00Z',data:{value:5}});check('daily average denominator correct',f.elements['metric-daily'].textContent==='2.5');
+  const before=await run({now:'2026-11-07T18:29:00Z',data:{value:4}}),after=await run({now:'2026-11-07T18:31:00Z',data:{value:4}});
+  check('IST midnight changes average day',before.elements['metric-daily'].textContent==='4'&&after.elements['metric-daily'].textContent==='2');
  }
  for(const value of [-1,1.5,null,true,'not-a-number','<script>','9007199254740992']){
-  const f=await run({data:{value}});check('invalid value stays hidden: '+String(value),f.elements['footer-metrics'].hidden);
+  const f=await run({data:{value}});check('invalid value hidden '+String(value),f.elements['footer-metrics'].hidden);
  }
  {
-  const f=await run({data:{value:0}});check('real zero accepted',!f.elements['footer-metrics'].hidden&&f.elements['metric-visits'].textContent==='0');
+  const f=await run({counts:{visits:0,customer:0,developer:0,engaged:0},missing:['customer','developer','engaged']});
+  check('confirmed missing keys represent real zero',!f.elements['footer-metrics'].hidden&&f.elements['metric-customer-starts'].textContent==='0');
+  f.emit('enquiry','input');await f.flush();check('first genuine event initializes key',f.elements['metric-customer-starts'].textContent==='1');
+ }
+ {
+  const f=await run({missing:['customer'],missingMessage:'unknown problem'});check('unrecognized 404 is not fabricated as zero',f.elements['footer-metrics'].hidden);
  }
  for(const options of [{networkError:true},{ok:false},{jsonError:true},{data:{error:'rate limited'}}]){
-  const f=await run(options);check('failure does not fabricate numbers '+JSON.stringify(options),f.elements['footer-metrics'].hidden);check('failure does not retry increment '+JSON.stringify(options),f.requests.length===1);
+  const f=await run(options);check('failure hides incomplete figures '+JSON.stringify(options),f.elements['footer-metrics'].hidden);check('failed visit increment never retried '+JSON.stringify(options),f.hits('visits').length===1);
  }
  {
-  const f=await run({host:'preview.example.com'});check('preview hosts do not increment production',f.requests.length===0&&f.elements['footer-metrics'].hidden);
+  const f=await run({host:'preview.example.com'});check('preview makes no production counter requests',f.requests.length===0&&f.elements['footer-metrics'].hidden);
  }
  {
-  const f=await run({now:'2026-11-06T10:00:00Z'});check('incorrect clock does not show impossible average',f.elements['footer-metrics'].hidden);
+  const f=await run({now:'2026-11-06T12:00:00Z'});check('bad clock never produces invalid average',f.elements['footer-metrics'].hidden);
  }
- console.log(reports.length+' external visit counter checks passed.');
+ {
+  const f=await run();f.doc.visibilityState='hidden';f.win.scrollY=800;f.winEvents.scroll();await f.flush();check('hidden tab does not engage',f.hits('engaged').length===0);
+  f.doc.visibilityState='visible';f.docEvents.visibilitychange();await f.flush();check('visible deep page engages once',f.hits('engaged').length===1);
+ }
+ {
+  const f=await run({bodyHeight:1400});f.win.scrollY=550;f.winEvents.scroll();await f.flush();check('uses full document height',f.hits('engaged').length===0);
+ }
+ {
+  const f=await run({networkError:true});f.emit('enquiry','input');await f.flush();f.emit('enquiry','change');await f.flush();check('ambiguous form start failure not retried',f.hits('customer').length===1);
+ }
+ {
+  const f=create({counts:{customer:0},missing:['customer']});f.emit('enquiry','input');await f.ready;await f.flush();check('early input is counted before startup reads finish',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='1');
+ }
+ console.log(reports.length+' external visit and engagement checks passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

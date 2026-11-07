@@ -11,7 +11,7 @@ The footer shows ONLY eight numeric figures, in this order:
 7. Engaged visits reaching 75% of page depth.
 8. Engagement rate.
 
-No permanent labels, headings or icons are added. All eight figures use numeric text, including rates. Percent units are retained only in hover titles and accessible labels. A compact bordered “Website activity” box sits on the right within the footer. Four columns across two rows preserve the reading order on every screen. On mobile the box fills the footer width; it is not fixed or floating over page content. Native hover titles and accessible names identify each number. All figures must be available before the strip is displayed; a confirmed unused external key is zero, but a network error is not.
+The presentation matches the CMS website's full-width Website activity strip: a heading and the actual main-site start date (7 November 2026), then one row of eight figures with small labels below. Narrow screens scroll the row horizontally. Rates remain integer numeric values without visible % signs; hover/accessibility names retain the units. Existing values, order and calculations do not change. The full strip remains hidden until complete valid figures load.
 
 ## Activation
 
@@ -54,6 +54,10 @@ Preview/local hosts do not request production counters. The strip is deliberatel
 
 GitHub Actions previously verified the provider's status endpoint returned HTTP 200 with Access-Control-Allow-Origin for https://jebg.jamilaexim.com, and a read-only query for the original new visit key returned HTTP 404 with the same origin permission. Automated tests use mocks and never increment production counters.
 
-tests/visits.test.cjs covers eight numeric figures, exact order, percentage formulas/integer rounding, zero denominator, live rate updates and responsive columns, as well as, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
+tests/visits.test.cjs covers eight numeric figures, exact order, percentage formulas/integer rounding, zero denominator, live rate updates and reference-style responsive layout, as well as, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
 
 Provider documentation: https://countapi.mileshilliard.com/ and https://github.com/syntaxerror019/countapi.
+
+## CMS presentation reference
+
+Layout source inspected from JE7864/JEBG-CMS-WEBSITE/index.html (cms.jamilaexim.com). Its final CSS uses a full-width single-row strip with subtle dividers, heading/date and labels, plus horizontal overflow on narrow screens. The main site retains its own eight metrics and historical keys, not CMS request/demo/tutorial counters. CMS's percentage-sign pseudo-element is intentionally not copied because the owner requested integer rates without visible signs. No executable CMS script or counter key is imported.

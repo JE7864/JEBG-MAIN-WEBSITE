@@ -7,12 +7,15 @@
 
 ## Representative industrial photographs
 
-The industry section loads responsive photographs from images.unsplash.com. They are illustrative industry context, not JEBG customer sites or claimed installations. Photographer credit links appear on each card.
+Six cards match the categories and descriptions requested for the main website. Photographs illustrate industry context; they are not JEBG customer sites or evidence of deployments. All have visible source/photographer credits. Images are cropped responsively to fit; source files are not edited.
 
-- Process & industrial facilities: Ali Mucci, [Unsplash source](https://unsplash.com/photos/gZbjx2K7s9I); image identifier `photo-1596980786765-775174984ec9`.
-- Solar energy: Gabriel, [Unsplash source](https://unsplash.com/photos/riFb-zdJ5QA); image identifier `photo-1592263904934-b00851dc93eb`.
-- Wind energy: Zac Wolff, [Unsplash source](https://unsplash.com/photos/ZTbMpMGB_7A); image identifier `photo-1675130277336-23cb686f01c0`.
+- **Thermal Power**: Jacob McGowin, [source](https://unsplash.com/photos/MR3vO_GsG68). Unsplash image identifier `photo-1759109391463-9ed28f142b5f`, free under the [Unsplash License](https://unsplash.com/license) according to its source page.
+- **Gas Turbine / CCGT**: Peoplepoweredbyenergy, [source](https://commons.wikimedia.org/wiki/File:Combined_Cycle_Gas_Fired_Power_Plant.jpg). “Combined Cycle Gas Fired Power Plant”, licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Display crop only. The attribution, license and crop notice appear on the card. This image remains under that license; no photographer endorsement is implied.
+- **Solar Power**: Gabriel, [source](https://unsplash.com/photos/riFb-zdJ5QA). Unsplash image identifier `photo-1592263904934-b00851dc93eb`, free under the [Unsplash License](https://unsplash.com/license) according to its source page.
+- **Wind Energy**: Zac Wolff, [source](https://unsplash.com/photos/ZTbMpMGB_7A). Unsplash image identifier `photo-1675130277336-23cb686f01c0`, free under the [Unsplash License](https://unsplash.com/license) according to its source page.
+- **Oil & Gas / Refinery**: Ali Mucci, [source](https://unsplash.com/photos/gZbjx2K7s9I). Unsplash image identifier `photo-1596980786765-775174984ec9`, free under the [Unsplash License](https://unsplash.com/license) according to its source page.
+- **Process Industries**: Haberdoedas, [source](https://unsplash.com/photos/TWlmgguC8HI). Unsplash image identifier `photo-1769695832195-dfe7e9f36980`, free under the [Unsplash License](https://unsplash.com/license) according to its source page.
 
-These source pages identify the images as free under the [Unsplash License](https://unsplash.com/license). The process/refinery image is also used on the USSS website. Solar and wind images use verified alternative source pages in the same photographic style, as several existing USSS short photo links could not be resolved during this update.
+The oil/refinery photo is also used on the USSS website. The other categories use source-verified alternatives because several USSS short photo links could not be resolved. Thermal imagery identifies a coal-fired plant; Gas Turbine / CCGT uses a documented combined-cycle gas-fired plant rather than an aircraft engine or unrelated power station.
 
-External photography requires access to Unsplash's image CDN. Explicit dimensions, responsive sources, lazy loading and dark placeholder backgrounds reserve layout space. Existing product screenshots remain repository-hosted.
+Industry photographs load from external Unsplash/Wikimedia image hosts. Explicit dimensions, responsive sources where available, lazy loading and dark placeholder backgrounds reserve layout space. Application screenshots, including USSS, remain repository-hosted. External image availability and rendered browser appearance require live verification.

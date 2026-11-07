@@ -36,7 +36,7 @@ Customer form-start rate = customer starts ÷ recorded page visits × 100.
 Developer form-start rate = developer starts ÷ recorded page visits × 100.
 Engagement rate = engaged visits ÷ recorded page visits × 100.
 
-These are calculated in the browser from the same four existing totals, formatted as percentage values with up to one decimal and no visible percent sign, and refreshed on successful counter updates. No new counter keys, API requests, backend functions or tracking events are needed. The existing visit history and daily-average start date are preserved.
+These are calculated in the browser from the same four existing totals, formatted as percentage values rounded to the nearest integer with no visible percent sign, and refreshed on successful counter updates. No new counter keys, API requests, backend functions or tracking events are needed. The existing visit history and daily-average start date are preserved.
 
 With zero recorded visits, rates display 0 as an empty-baseline convention instead of NaN/Infinity. Ratios are not capped at 100%; independent public counts, network failures, timing differences or external modifications can produce values above 100%, and silently capping would conceal the data.
 
@@ -54,6 +54,6 @@ Preview/local hosts do not request production counters. The strip is deliberatel
 
 GitHub Actions previously verified the provider's status endpoint returned HTTP 200 with Access-Control-Allow-Origin for https://jebg.jamilaexim.com, and a read-only query for the original new visit key returned HTTP 404 with the same origin permission. Automated tests use mocks and never increment production counters.
 
-tests/visits.test.cjs covers eight numeric figures, exact order, percentage formulas/rounding, zero denominator, live rate updates and responsive columns, as well as, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
+tests/visits.test.cjs covers eight numeric figures, exact order, percentage formulas/integer rounding, zero denominator, live rate updates and responsive columns, as well as, all read/increment routes, genuine first-input detection, field exclusions, per-page deduplication, 75% depth, hidden-tab handling, startup event races, privacy, response validation, IST midnight, averages, failure behavior and preview exclusion. Existing storage/email/admin/timezone and legacy optional-metrics tests remain. Backend/Metrics.gs is unused by the website; no Apps Script update is required.
 
 Provider documentation: https://countapi.mileshilliard.com/ and https://github.com/syntaxerror019/countapi.

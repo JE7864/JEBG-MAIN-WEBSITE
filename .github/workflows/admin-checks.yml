@@ -33,7 +33,7 @@ jobs:
         run: |
           node <<'NODE'
           const fs=require('node:fs');
-          for(const path of ['backend/Admin.html','docs/admin/index.html','docs/index.html']){
+          for(const path of ['backend/Admin1.html','docs/admin/index.html','docs/index.html']){
             const text=fs.readFileSync(path,'utf8');
             for(const match of text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
               if(/\btype=["']application\/ld\+json["']/i.test(match[1]))JSON.parse(match[2]);

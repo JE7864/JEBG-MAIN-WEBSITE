@@ -21,7 +21,7 @@ function fixture(options={}){
   {getUuid:()=> 'aaaaaaaa-bbbb-4ccc-8ddd-'+String(++ids).padStart(12,'0'),formatDate:()=> '05 Nov 2026, 02:00 PM',computeDigest:(_,s)=>Array.from(crypto.createHash('sha256').update(s).digest()),DigestAlgorithm:{SHA_256:'sha'},Charset:{UTF_8:'utf8'}},
   {getScriptProperties:()=>({getProperty:k=>props.get(k)||null,setProperty:(k,v)=>props.set(k,v)})},{getScriptCache:()=>({get:()=>null,put(){}})},
   {createHtmlOutput:html=>({html,setTitle(){return this}})},
-  {getRemainingDailyQuota:()=>status.quota,sendEmail:message=>{if(!db['Email Notifications'].some(row=>row[0]===message.subject.split(' | ').pop()&&row[4]==='Sending'))throw Error('Send intent not persisted');if(status.failMail)throw Error('mail failed');sent.push(message);status.quota--;}},
+  {getRemainingDailyQuota:()=>status.quota,sendEmail:message=>{if(!db['Email Notifications'].some(row=>row[0]===message.subject.split(' | ').pop()&&row[4]==='Sending'))throw Error('Send intent not persisted');if(status.failMail)throw Error('mail failed');sent.push(message);status.quota-=message.cc?2:1;}},
   {getProjectTriggers:()=>triggers,newTrigger:name=>({timeBased(){return this},everyMinutes(n){if(n!==5)throw Error('wrong retry cadence');return this},create(){triggers.push({getHandlerFunction:()=>name});}})}
  );
  Object.values(api.schema).forEach(s=>db[s.tab]=[s.headers.slice()]);return {...api,db,sent,status,props,triggers};
@@ -31,6 +31,8 @@ for(const kind of ['customer','expert','partner']){
  const f=fixture(),d=input(kind),html=f.doPost({parameter:{payload:JSON.stringify(d)}}).html,tab=f.schema[kind].tab;
  check(kind+' request saved before two notifications',f.db[tab].length===2&&f.sent.length===2);
  check(kind+' acknowledgement goes to saved applicant',f.sent[0].to===d.email&&f.sent[0].replyTo==='jamilaexim786vector@gmail.com');
+ check(kind+' acknowledgement has no internal CC',!f.sent[0].cc);
+ check(kind+' work mailbox receives internal CC',f.sent[1].cc==='work.shekhaman@gmail.com');
  check(kind+' separate notification goes to owner',f.sent[1].to==='jamilaexim786vector@gmail.com'&&f.sent[1].replyTo===d.email);
  check(kind+' applicant never receives private Sheet link',!f.sent[0].htmlBody.includes('docs.google.com/spreadsheets'));
  check(kind+' owner receives saved-record link',f.sent[1].htmlBody.includes('#gid='));
@@ -46,6 +48,13 @@ for(const kind of ['customer','expert','partner']){
  check('partner fixed terms stored',f.db[tab][1][2+f.schema.partner.fields.indexOf('termsVersion')]==='2026-11-08-v1');
  }
  if(kind==='expert')check('application acknowledgement makes no employment promise',f.sent[0].htmlBody.includes('does not guarantee an assignment or employment'));
+}
+{
+ const f=fixture({quota:2});f.doPost({parameter:{payload:JSON.stringify(input())}});
+ check('quota accounts for all three recipients',f.sent.length===1&&f.db['Email Notifications'][2][4]==='Pending'&&f.status.quota===1);
+ f.retryJebgEmails_();check('internal notification waits for quota for both recipients',f.sent.length===1);
+ f.status.quota=2;f.retryJebgEmails_();check('internal notification and CC send together when quota returns',f.sent.length===2&&f.sent[1].cc==='work.shekhaman@gmail.com'&&f.status.quota===0);
+ f.retryJebgEmails_();check('CC change does not resend historical notifications',f.sent.length===2);
 }
 {
  const f=fixture({quota:0});f.doPost({parameter:{payload:JSON.stringify(input())}});

@@ -5,6 +5,7 @@ const JEBG_EMAIL = Object.freeze({
   flag: 'JEBG_EMAIL_ENABLED',
   headers: ['Reference','Kind','Recipient Role','Recipient','Status','Attempts','Last Attempt IST','Sent At IST','Error'],
   senderName: 'JEBG AI Technologies | Jamila Exim',
+  adminCc: 'work.shekhaman@gmail.com',
   maxBatch: 20
 });
 
@@ -103,12 +104,14 @@ function sendQueuedEmails_(reference, limit) {
         row[4]='Needs review';row[8]='A send attempt ended without confirmation. Check Sent mail before retrying.';
         queue.getRange(i+2,1,1,JEBG_EMAIL.headers.length).setValues([row]);SpreadsheetApp.flush();
       }
-      if(row[4]==='Pending' && enabled && quota>0 && sent<limit){
+      const requiredRecipients=row[2]==='admin'?2:1;
+      if(row[4]==='Pending' && enabled && quota>=requiredRecipients && sent<limit){
         let message;
         try {
           const record=storedEmailRecord_(book,row[1],String(row[0]));
           const expected=row[2]==='admin'?JEBG_CONFIG.contact:record.values.email.trim().toLowerCase();
           if((row[2]!=='admin'&&row[2]!=='acknowledgement')||!validNotificationRecipient_(row[3])||row[3]!==expected)throw new Error('Recipient does not match saved request');
+          if(row[2]==='admin'&&!validNotificationRecipient_(JEBG_EMAIL.adminCc))throw new Error('Internal CC recipient is invalid');
           message=submissionEmail_(record,row[2]);
         } catch(buildError){
           row[4]='Needs review';row[8]='Saved record or recipient could not be verified.';
@@ -130,7 +133,7 @@ function sendQueuedEmails_(reference, limit) {
             // If this write fails, persisted Sending prevents an accidental duplicate.
             queue.getRange(i+2,1,1,JEBG_EMAIL.headers.length).setValues([row]);SpreadsheetApp.flush();
           }
-          quota--;sent++;
+          quota-=requiredRecipients;sent++;
         }
       }
       if(reference && (row[2]==='acknowledgement'||row[2]==='admin'))state[row[2]]=row[4];
@@ -177,7 +180,7 @@ function submissionEmail_(record, role) {
  const greeting=admin?'Hello JEBG Team,':'Hello '+(v.name||'there')+',';
  const html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media(max-width:600px){.pad{padding:26px 22px!important}.outer{padding:16px 8px!important}.title{font-size:27px!important}}</style></head><body style="margin:0;padding:0;background:#edf3f7;color:#183445;font-family:Arial,sans-serif"><div style="display:none;font-size:1px;line-height:1px;color:#edf3f7;max-height:0;max-width:0;opacity:0;overflow:hidden">'+emailText_(label+' recorded. Reference: '+record.reference)+'</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edf3f7"><tr><td class="outer" align="center" style="padding:32px 16px"><table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dce6ed;border-radius:12px;overflow:hidden"><tr><td class="pad" style="padding:30px 36px;background:#0b2232;border-bottom:4px solid #35c5d6"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border:1px solid #4ad9eb;padding:7px 11px;font-size:15px;color:#4ad9eb;font-weight:bold;letter-spacing:3px">JEBG</td><td style="padding-left:14px;color:#edf7fc;font-size:12px;letter-spacing:1.4px;font-weight:bold">AI TECHNOLOGIES<br><span style="color:#a2bdce;font-size:9px;letter-spacing:1px;font-weight:normal">INDUSTRIAL &amp; BUSINESS SOLUTIONS</span></td></tr></table></td></tr><tr><td class="pad" style="padding:36px"><p style="margin:0 0 12px;font-size:10px;letter-spacing:1.8px;color:#07869a;font-weight:bold">'+(admin?'NEW SUBMISSION':'REQUEST RECORDED')+'</p><h1 class="title" style="margin:0 0 22px;font-size:32px;line-height:1.2;letter-spacing:-.8px;color:#102e41">'+heading+'</h1><p style="font-size:14px;line-height:1.8;margin:0 0 12px">'+emailText_(greeting)+'</p><p style="font-size:14px;line-height:1.8;color:#516b7b;margin:0 0 24px">'+intro+'</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edf8f9;border:1px solid #bfe5e9;border-radius:7px"><tr><td style="padding:20px"><p style="margin:0 0 7px;font-size:10px;letter-spacing:1.5px;color:#4b7680;font-weight:bold">YOUR REFERENCE NUMBER</p><p style="margin:0 0 7px;font:14px/1.6 monospace;word-break:break-all;color:#0b5364">'+emailText_(record.reference)+'</p><p style="margin:0;font-size:11px;color:#51747e">'+emailText_(label+' · '+saved)+'</p></td></tr></table><h2 style="font-size:17px;color:#15384b;margin:27px 0 12px">'+(admin?'Submission details':'A copy of your request')+'</h2><table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e3eaf0">'+details+'</table>'+termsHtml+'<p style="font-size:11px;color:#6b8291;margin:12px 0 24px">'+emailText_(consent)+'</p><h2 style="font-size:17px;color:#15384b;margin:0 0 10px">'+(admin?'Next action':'What happens next')+'</h2><p style="font-size:13px;line-height:1.8;color:#516b7b;margin:0 0 24px">'+(admin?'Open the saved record, review the request, and update its Status and Notes as appropriate. Reply to this email to contact the submitter.':next)+'</p><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="#087f94" style="border-radius:5px"><a href="'+escape_(buttonUrl)+'" style="display:inline-block;padding:13px 21px;font-size:12px;font-weight:bold;color:#ffffff;text-decoration:none">'+buttonLabel+' &rarr;</a></td></tr></table>'+signatureHtml_()+'</td></tr><tr><td class="pad" style="padding:20px 36px;background:#f6f9fb;border-top:1px solid #e3eaf0;font-size:10px;line-height:1.8;color:#78909e">'+(admin?'Internal JEBG notification. Submission details are provided for review and response.':'This is a service acknowledgement for the request you submitted to JEBG. Optional promotional updates are managed separately.')+'<br>&copy; 2026 JEBG / Jamila Exim</td></tr></table></td></tr></table></body></html>';
  const body=[greeting,'',heading,'',intro,'','Reference: '+record.reference,label+' | '+saved,'',...schema.fields.map(function(key,i){return schema.labels[i]+': '+(v[key]||'Not provided');}),'',...terms,'',consent,'',admin?'Review the saved record: '+record.sheetUrl:next,'',JEBG_CONFIG.website,'',signatureText_()].join('\n');
- return {to:admin?JEBG_CONFIG.contact:v.email.trim().toLowerCase(),replyTo:admin?v.email.trim().toLowerCase():JEBG_CONFIG.contact,subject:subject,body:body,htmlBody:html,name:JEBG_EMAIL.senderName};
+ return {to:admin?JEBG_CONFIG.contact:v.email.trim().toLowerCase(),...(admin?{cc:JEBG_EMAIL.adminCc}:{}),replyTo:admin?v.email.trim().toLowerCase():JEBG_CONFIG.contact,subject:subject,body:body,htmlBody:html,name:JEBG_EMAIL.senderName};
 }
 
 /** Rebuild only missing queue items for email-era records, never for historical records. */

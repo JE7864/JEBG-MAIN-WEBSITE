@@ -35,7 +35,10 @@ function fixture(){
 }
 {
  const f=fixture(),customer=f.record('customer'),expert=f.record('expert'),token=f.api.adminBootstrap().token;
- const view=f.api.adminOverview(token);check('actual totals from both tabs',view.counts.customer===1&&view.counts.expert===1);check('RPC dates serialized',typeof view.recent[0].submittedAt==='string');
+ const partner=f.record('partner');
+ check('partner list isolated',f.api.adminListRecords(token,{kind:'partner'}).records.length===1&&f.api.adminListRecords(token,{kind:'partner'}).records[0].kind==='partner');
+ check('partner detail accessible to owner',f.api.adminGetRecord(token,'partner',partner[0]).fields.some(x=>x.label==='Industry / Network'));
+ const view=f.api.adminOverview(token);check('partner overview count',view.counts.partner===1);check('actual totals from both tabs',view.counts.customer===1&&view.counts.expert===1);check('RPC dates serialized',typeof view.recent[0].submittedAt==='string');
  check('search and product preserved',f.api.adminListRecords(token,{search:'SafetyWatch'}).records[0].product==='JEBG VisionAI — SafetyWatch');
  const detail=f.api.adminGetRecord(token,'customer',customer[0]),before=customer.slice();f.api.adminUpdateRecord(token,{kind:'customer',reference:customer[0],fingerprint:detail.fingerprint,status:'Contacted',notes:'=unsafe'});
  check('submitted fields and consent preserved',before.slice(0,16).every((x,i)=>x===customer[i]));check('notes formula escaped',customer[17]==="'=unsafe");check('only status notes timestamp editable',customer[16]==='Contacted'&&customer[18] instanceof Date);
@@ -46,11 +49,11 @@ function fixture(){
  check('detail RPC serializable',!!JSON.stringify(f.api.adminGetRecord(token,'expert',expert[0])));
 }
 {
- const f=fixture();f.record('customer');f.record('expert');const q=f.email=f.api.email;
+ const f=fixture();f.record('customer');f.record('expert');f.record('partner');const q=f.email=f.api.email;
  f.source.tabs[q.sheet].rows.push(['REF-customer','customer','acknowledgement','person@example.com','Sent',1,new Date('2026-11-06T00:00:00Z'),new Date('2026-11-06T00:00:01Z'),'']);
  const token=f.api.adminBootstrap().token,before=JSON.stringify(f.source.tabs),targetBefore=JSON.stringify(f.target.tabs);
  check('destination test compatible',f.api.adminTestDestination(token,f.target.id).compatible);check('test is read only',JSON.stringify(f.target.tabs)===targetBefore);
- const plan=f.api.adminPreviewMigration(token,f.target.id);check('preview includes both forms and outbox',plan.tables.length===3&&plan.tables.every(t=>t.rowsToCopy===1));
+ const plan=f.api.adminPreviewMigration(token,f.target.id);check('preview includes all forms and outbox',plan.tables.length===4&&plan.tables.every(t=>t.rowsToCopy===1));
  rejects('typed confirmation required',()=>f.api.adminActivateDestination(token,{...plan,confirmation:'wrong'}),/exact/);
  const connection=f.api.adminActivateDestination(token,{...plan,confirmation:f.target.id});
  check('verified target activated',connection.spreadsheetId===f.target.id&&connection.previousSpreadsheetId===f.source.id);

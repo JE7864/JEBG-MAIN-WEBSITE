@@ -25,7 +25,7 @@ function adminAudit_(state,actor,action,target){
  return next;
 }
 function adminPage_(){
- try{adminOwner_();return HtmlService.createHtmlOutputFromFile('Admin').setTitle('JEBG | Owner workspace');}
+ try{adminOwner_();return HtmlService.createHtmlOutputFromFile('Admin1').setTitle('JEBG | Owner workspace');}
  catch(e){return HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="background:#07131e;color:#eaf4fc;font:16px/1.8 Arial;padding:40px"><main style="max-width:600px;margin:50px auto"><p style="color:#4ad9eb">JEBG OWNER WORKSPACE</p><h1>Authorized access required.</h1><p>Use the private admin deployment and sign in with the JEBG owner account. This page has not loaded any private records.</p></main></body></html>').setTitle('JEBG | Authorized access required');}
 }
 function adminBootstrap(){
@@ -57,12 +57,12 @@ function adminFind_(data,reference){
 }
 function adminBrief_(kind,schema,row){
  const get=function(key){return adminValue_(row[2+schema.fields.indexOf(key)]);};
- return {reference:String(row[0]),kind:kind,name:get('name'),email:get('email'),context:kind==='customer'?get('company'):get('specialisation'),product:kind==='customer'?get('product'):get('engagement'),submittedAt:adminValue_(row[1]),status:String(row[schema.headers.indexOf('Status')]||'New')};
+ return {reference:String(row[0]),kind:kind,name:get('name'),email:get('email'),context:kind==='partner'?get('industry'):kind==='customer'?get('company'):get('specialisation'),product:kind==='partner'?get('location'):kind==='customer'?get('product'):get('engagement'),submittedAt:adminValue_(row[1]),status:String(row[schema.headers.indexOf('Status')]||'New')};
 }
 function adminOverview(token){
  adminRequire_(token);
  const book=SpreadsheetApp.openById(activeSpreadsheetId_()),all=[];
- const counts={customer:0,expert:0,needsFollowUp:0,newRequests:0,pendingEmails:0,reviewEmails:0,sentEmails:0};
+ const counts={customer:0,expert:0,partner:0,needsFollowUp:0,newRequests:0,pendingEmails:0,reviewEmails:0,sentEmails:0};
  Object.keys(JEBG_SCHEMA).forEach(function(kind){const d=adminRows_(book,kind);d.rows.filter(function(r){return r[0];}).forEach(function(r){const item=adminBrief_(kind,d.schema,r);counts[kind]++;if(item.status==='New')counts.newRequests++;if(['New','Contacted','Discussion','Proposal'].indexOf(item.status)>=0)counts.needsFollowUp++;all.push(item);});});
  const queue=book.getSheetByName(JEBG_EMAIL.sheet);
  if(queue&&queue.getLastRow()>1)queue.getRange(2,1,queue.getLastRow()-1,JEBG_EMAIL.headers.length).getValues().forEach(function(r){if(r[4]==='Pending')counts.pendingEmails++;if(r[4]==='Needs review'||r[4]==='Sending')counts.reviewEmails++;if(r[4]==='Sent')counts.sentEmails++;});
@@ -71,7 +71,7 @@ function adminOverview(token){
 }
 function adminListRecords(token,query){
  adminRequire_(token);query=query||{};
- const kind=query.kind==='expert'?'expert':'customer',d=adminRows_(SpreadsheetApp.openById(activeSpreadsheetId_()),kind);
+ const kind=query.kind==='partner'?'partner':query.kind==='expert'?'expert':'customer',d=adminRows_(SpreadsheetApp.openById(activeSpreadsheetId_()),kind);
  const search=String(query.search||'').trim().toLowerCase().slice(0,120),status=String(query.status||'');
  if(status&&JEBG_ADMIN_STATUSES.indexOf(status)<0)throw new Error('Invalid status filter.');
  let rows=d.rows.filter(function(r){return r[0]&&(!status||r[d.schema.headers.indexOf('Status')]===status)&&(!search||r.some(function(v){return String(v).toLowerCase().indexOf(search)>=0;}));}).map(function(r){return adminBrief_(kind,d.schema,r);});

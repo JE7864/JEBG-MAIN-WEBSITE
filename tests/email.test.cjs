@@ -26,8 +26,8 @@ function fixture(options={}){
  );
  Object.values(api.schema).forEach(s=>db[s.tab]=[s.headers.slice()]);return {...api,db,sent,status,props,triggers};
 }
-function input(kind='customer'){return {kind,name:'Example <Customer>',email:'sample@example.com',company:'Example Company',product:'JEBG USSS',location:'India',specialisation:'QA / Deployment',experience:'5 years',portfolio:'https://example.com',availability:'10 hours/week',engagement:'Open to discussion',message:'Line one\n<script>alert(1)</script>',agreement:true,consent:false,requestId:'11111111-2222-4333-8444-555555555555'};}
-for(const kind of ['customer','expert']){
+function input(kind='customer'){return {kind,name:'Example <Customer>',email:'sample@example.com',phone:'0000000000',industry:'Industrial network',company:'Example Company',product:'JEBG USSS',location:'India',specialisation:'QA / Deployment',experience:'5 years',portfolio:'https://example.com',availability:'10 hours/week',engagement:'Open to discussion',message:'Line one\n<script>alert(1)</script>',agreement:true,consent:false,requestId:'11111111-2222-4333-8444-555555555555'};}
+for(const kind of ['customer','expert','partner']){
  const f=fixture(),d=input(kind),html=f.doPost({parameter:{payload:JSON.stringify(d)}}).html,tab=f.schema[kind].tab;
  check(kind+' request saved before two notifications',f.db[tab].length===2&&f.sent.length===2);
  check(kind+' acknowledgement goes to saved applicant',f.sent[0].to===d.email&&f.sent[0].replyTo==='jamilaexim786vector@gmail.com');
@@ -40,6 +40,11 @@ for(const kind of ['customer','expert']){
  f.doPost({parameter:{payload:JSON.stringify(d)}});
  check(kind+' retry sends no duplicate messages',f.sent.length===2&&f.db[tab].length===2);
  check(kind+' both email statuses persist',f.db['Email Notifications'].slice(1).every(r=>r[4]==='Sent'&&r[5]===1&&r[7] instanceof Date));
+ if(kind==='partner'){
+ check('partner commission terms in HTML and text',f.sent[0].htmlBody.includes('INR 100 + taxes')&&f.sent[0].body.includes('20% of INR 100 = INR 20'));
+ check('partner approval and cash receipt conditions',f.sent[0].body.includes('not an appointment')&&f.sent[0].body.includes('payments actually received'));
+ check('partner fixed terms stored',f.db[tab][1][2+f.schema.partner.fields.indexOf('termsVersion')]==='2026-11-08-v1');
+ }
  if(kind==='expert')check('application acknowledgement makes no employment promise',f.sent[0].htmlBody.includes('does not guarantee an assignment or employment'));
 }
 {

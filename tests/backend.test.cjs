@@ -24,14 +24,19 @@ function fixture(options={}){
  schema=Object.fromEntries(Object.values(api.schema).map(s=>[s.tab,s]));Object.keys(schema).forEach(tab=>rows[tab]=[]);
  return {...api,rows};
 }
-function input(kind){return {kind,name:'Milestone test',email:'milestone@example.com',company:'JEBG QA',product:'JEBG USSS',location:'Test location',specialisation:'QA / Deployment',experience:'Test',availability:'Test only',engagement:'Open to discussion',message:'Milestone 1.1.0 test',agreement:true,consent:false,requestId:'11111111-2222-4333-8444-555555555555'};}
-for(const kind of ['customer','expert']){
+function input(kind){return {kind,name:'Milestone test',email:'milestone@example.com',phone:'0000000000',industry:'Industrial network',company:'JEBG QA',product:'JEBG USSS',location:'Test location',specialisation:'QA / Deployment',experience:'Test',availability:'Test only',engagement:'Open to discussion',message:'Milestone 1.1.0 test',agreement:true,consent:false,requestId:'11111111-2222-4333-8444-555555555555'};}
+for(const kind of ['customer','expert','partner']){
  const f=fixture(),data=input(kind),result=f.saveSubmission_(data),tab=f.schema[kind].tab;
  check(kind+' writes to correct tab',f.rows[tab].length===1&&!result.duplicate);
  const again=f.saveSubmission_(data);
  check(kind+' retry does not duplicate',again.duplicate&&again.id===result.id&&f.rows[tab].length===1);
  const receipt=f.doPost({parameter:{payload:JSON.stringify(data)}}).html;
  check(kind+' duplicate receipt explains existing record',receipt.includes('Already safely received.')&&receipt.includes('No duplicate was added.'));
+}
+{
+ const f=fixture(),d={...input('partner'),termsVersion:'tampered',commissionRate:'99%'};f.saveSubmission_(d);
+ const row=f.rows[f.schema.partner.tab][0];check('partner terms cannot be overridden by client',row[2+f.schema.partner.fields.indexOf('termsVersion')]==='2026-11-08-v1'&&row[2+f.schema.partner.fields.indexOf('commissionRate')]==='20% of sale value excluding taxes');
+ for(const field of ['name','email','phone','location','industry','message']){const bad=input('partner');bad[field]='';check('partner requires '+field,!fixture().doPost({parameter:{payload:JSON.stringify(bad)}}).html.includes('Submission confirmed'));}
 }
 for(const [name,opt] of [['write failure',{failWrite:true}],['readback mismatch',{corruptReadback:true}],['missing tab',{missingSheet:true}],['busy lock',{busy:true}]]){
  const html=fixture(opt).doPost({parameter:{payload:JSON.stringify(input('customer'))}}).html;

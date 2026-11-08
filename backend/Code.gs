@@ -9,7 +9,7 @@ const JEBG_CONFIG = Object.freeze({
   contact: 'jamilaexim786vector@gmail.com',
   maxDailySubmissions: 500,
   maxPerEmailPerHour: 10,
-  version: '1.3.1'
+  version: '1.4.0'
 });
 const JEBG_CONSENT = {
   customer: 'I would like to receive relevant JEBG product updates and promotional communications by email. I can withdraw this preference at any time.',
@@ -117,6 +117,53 @@ const JEBG_SCHEMA = {
   }
 };
 
+JEBG_SCHEMA.partner = {
+  "tab": "Partner Applications",
+  "fields": [
+    "name",
+    "email",
+    "phone",
+    "location",
+    "industry",
+    "message",
+    "termsVersion",
+    "commissionRate"
+  ],
+  "labels": [
+    "Name",
+    "Email",
+    "Phone",
+    "Location",
+    "Industry / Network",
+    "Introduction",
+    "Commission Terms Version",
+    "Commission Rate"
+  ],
+  "headers": [
+    "Reference",
+    "Submitted At IST",
+    "Name",
+    "Email",
+    "Phone",
+    "Location",
+    "Industry / Network",
+    "Introduction",
+    "Commission Terms Version",
+    "Commission Rate",
+    "Updates Opt-in",
+    "Consent Text",
+    "Consent Version",
+    "Consent At IST",
+    "Status",
+    "Notes",
+    "Updated At IST",
+    "Source",
+    "Request ID",
+    "Dedupe Hash"
+  ]
+};
+JEBG_CONSENT.partner = 'I would like to receive relevant JEBG partner programme updates by email. I can withdraw this preference at any time.';
+
 /** Run once in the Apps Script editor. This preserves all existing rows. */
 function setupJebgBackend_() {
   const book = SpreadsheetApp.openById(activeSpreadsheetId_());
@@ -138,7 +185,7 @@ function setupJebgBackend_() {
 function doGet(e) {
   if(e && e.parameter && e.parameter.page === 'stats') return publicStatsResponse_();
   if(e && e.parameter && e.parameter.page === 'admin') return adminPage_();
-  return receipt_(false, 'This address receives JEBG website submissions. Please use the enquiry or developer form on our website.', '');
+  return receipt_(false, 'This address receives JEBG website submissions. Please use the enquiry, developer or partner form on our website.', '');
 }
 
 function doPost(e) {
@@ -150,7 +197,7 @@ function doPost(e) {
     const result = saveSubmission_(data);
     let email = { acknowledgement: 'Not queued', admin: 'Not queued' };
     if (result.emailEligible) { try { email = sendQueuedEmails_(result.id, 2); } catch (emailError) { email.acknowledgement = 'Pending'; } }
-    return receipt_(true, result.duplicate ? 'This submission was already saved.' : 'Thank you. Your ' + (data.kind === 'expert' ? 'application' : 'enquiry') + ' has been saved.', result.id, { kind: data.kind, duplicate: result.duplicate, savedAt: result.savedAt, email: email });
+    return receipt_(true, result.duplicate ? 'This submission was already saved.' : 'Thank you. Your ' + (data.kind === 'partner' ? 'partner application' : data.kind === 'expert' ? 'application' : 'enquiry') + ' has been saved.', result.id, { kind: data.kind, duplicate: result.duplicate, savedAt: result.savedAt, email: email });
   } catch (err) {
     const message = err && err.publicMessage ? err.publicMessage : 'We could not confirm a save. Please retry from the website using the same submission, or contact ' + JEBG_CONFIG.contact + '.';
     // No form contents, email addresses or internal error details are logged or returned.
@@ -161,7 +208,7 @@ function doPost(e) {
 function saveSubmission_(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail_('Invalid submission.');
   if (input.website) fail_('Unable to accept this submission.');
-  if (input.kind !== 'customer' && input.kind !== 'expert') fail_('Invalid form type.');
+  if (input.kind !== 'customer' && input.kind !== 'expert' && input.kind !== 'partner') fail_('Invalid form type.');
   const schema = JEBG_SCHEMA[input.kind];
   if (input.agreement !== true) fail_('Please confirm permission to store and respond to your submission.');
   if (typeof input.consent !== 'boolean') fail_('Invalid communication preference.');
@@ -171,8 +218,9 @@ function saveSubmission_(input) {
     values[key] = String(input[key] || '').trim();
     if (values[key].length > (key === 'message' ? 2500 : key === 'portfolio' ? 500 : 250)) fail_('Field too long: ' + key);
   });
+  if (input.kind === 'partner') { values.termsVersion = '2026-11-08-v1'; values.commissionRate = '20% of sale value excluding taxes'; }
   values.email = values.email.toLowerCase();
-  const required = input.kind === 'customer' ? ['name', 'company', 'email', 'product', 'message'] : ['name', 'email', 'location', 'specialisation', 'experience', 'availability', 'engagement', 'message'];
+  const required = input.kind === 'partner' ? ['name', 'email', 'phone', 'location', 'industry', 'message'] : input.kind === 'customer' ? ['name', 'company', 'email', 'product', 'message'] : ['name', 'email', 'location', 'specialisation', 'experience', 'availability', 'engagement', 'message'];
   if (required.some(function (k) { return !values[k] })) fail_('Complete all required fields before submitting.');
   if (!validNotificationRecipient_(values.email)) fail_('Enter a valid email address.');
   if (values.portfolio && !/^https?:\/\/[^\s/]+(?:\/[^\s]*)?$/i.test(values.portfolio)) fail_('Portfolio must be a valid http or https link.');
@@ -226,13 +274,13 @@ function fail_(message) { const error = new Error(message); error.publicMessage 
 function escape_(text) { return String(text).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }); }
 function receipt_(saved, message, id, details) {
   details = details || {};
-  const type = details.kind === 'expert' ? 'Developer application' : 'Customer enquiry';
+  const type = details.kind === 'partner' ? 'Sales partner application' : details.kind === 'expert' ? 'Developer application' : 'Customer enquiry';
   const title = saved ? (details.duplicate ? 'Already safely received.' : 'Thank you. You’re all set.') : 'Let’s complete your submission.';
   const timestamp = saved && details.savedAt instanceof Date && !isNaN(details.savedAt.getTime())
     ? Utilities.formatDate(details.savedAt, 'Asia/Kolkata', 'dd MMM yyyy, hh:mm a') + ' IST' : '';
   const icon = saved ? '&#10003;' : '!';
   const record = saved ? '<section class="record" aria-label="Submission receipt"><div class="record-top"><span>' + escape_(type) + '</span><span class="badge">' + (details.duplicate ? 'Previously saved' : 'Saved successfully') + '</span></div><p class="label">YOUR REFERENCE NUMBER</p><p class="reference">' + escape_(id) + '</p>' + (timestamp ? '<p class="timestamp">Recorded ' + escape_(timestamp) + '</p>' : '') + '<p class="hint">Keep this reference for any follow-up with our team.</p></section>' : '<section class="record"><p class="label">YOUR NEXT STEP</p><p>Return to your original form, review your details and try again. Your entries remain in that tab.</p><p class="hint">A save is confirmed only when a reference number is displayed.</p></section>';
-  const journey = saved ? '<section class="journey" aria-label="What happens next"><h2>What happens next</h2><ol><li class="done"><span>01</span><div><strong>Submission received</strong><p>Your details reached JEBG.</p></div></li><li class="done"><span>02</span><div><strong>Record saved</strong><p>' + (details.duplicate ? 'Your existing record is retained. No duplicate was added.' : 'Your details are stored in our private records.') + '</p></div></li><li><span>03</span><div><strong>Team review</strong><p>' + (details.kind === 'expert' ? 'We’ll review your expertise for relevant project opportunities.' : 'We’ll review your requirement and contact you using the details provided.') + '</p></div></li></ol></section>' : '';
+  const journey = saved ? '<section class="journey" aria-label="What happens next"><h2>What happens next</h2><ol><li class="done"><span>01</span><div><strong>Submission received</strong><p>Your details reached JEBG.</p></div></li><li class="done"><span>02</span><div><strong>Record saved</strong><p>' + (details.duplicate ? 'Your existing record is retained. No duplicate was added.' : 'Your details are stored in our private records.') + '</p></div></li><li><span>03</span><div><strong>Team review</strong><p>' + (details.kind === 'partner' ? 'We’ll review your application and contact you about partner approval and next steps.' : details.kind === 'expert' ? 'We’ll review your expertise for relevant project opportunities.' : 'We’ll review your requirement and contact you using the details provided.') + '</p></div></li></ol></section>' : '';
   const html = `<!doctype html><html lang="en"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>JEBG | Submission receipt</title><style>
 *{box-sizing:border-box}body{margin:0;background:#07131e;color:#eaf4fc;font:15px/1.65 Arial,sans-serif;min-height:100vh;background-image:radial-gradient(ellipse at 75% 0,#123c53 0,transparent 60%)}a{color:inherit}header,main,footer{width:calc(100% - 40px);max-width:860px;margin:auto}header{display:flex;align-items:center;gap:14px;padding:30px 0}.mark{border:1px solid #4ad9eb;border-radius:5px;padding:7px 12px;font-weight:800;letter-spacing:3px;color:#4ad9eb}.brand{font-size:12px;font-weight:bold;letter-spacing:1.7px}.brand small{display:block;font-size:9px;letter-spacing:1.2px;color:#9db4c5;margin-top:3px}.card{background:#0b1e2c;border:1px solid #294858;border-radius:18px;overflow:hidden;box-shadow:0 24px 80px #0003}.intro{padding:38px 42px 26px}.icon{display:flex;width:54px;height:54px;align-items:center;justify-content:center;border:1px solid ${saved ? '#3d907a' : '#b39456'};border-radius:50%;background:${saved ? '#143c37' : '#3a3020'};color:${saved ? '#8ae0bd' : '#f5d28c'};font-size:27px;margin-bottom:23px}.eyebrow{color:#4ad9eb;font-size:10px;letter-spacing:2px;font-weight:bold;text-transform:uppercase}h1{font-size:clamp(28px,5vw,40px);line-height:1.15;letter-spacing:-1.2px;margin:13px 0 16px}p{margin:0 0 12px}.intro>p{color:#b0c5d4;max-width:620px}.record{margin:0 42px;padding:24px;background:#071925;border:1px solid #315365;border-radius:10px}.record-top{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;font-weight:bold;margin-bottom:22px}.badge{font-size:10px;color:#8ae0bd;background:#13382f;border:1px solid #2c5d4d;padding:4px 10px;border-radius:20px;white-space:nowrap}.label{color:#91b2c7;font-size:9px;letter-spacing:1.7px;font-weight:bold;margin-bottom:9px}.reference{font:500 clamp(13px,2.5vw,20px)/1.6 monospace;color:#d8f8fc;overflow-wrap:anywhere;letter-spacing:.3px}.timestamp,.hint{font-size:11px;color:#94afc1}.hint{margin-bottom:0}.journey{padding:28px 42px}h2{font-size:17px;margin:0 0 20px}ol{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}li{display:flex;gap:10px}li>span{font-size:10px;width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border:1px solid #526475;border-radius:50%;color:#aac1d1}.done>span{border-color:#3a7c69;background:#15352f;color:#8ae0bd}li strong{font-size:12px}li p{font-size:11px;color:#9db4c5;margin-top:6px}.actions{padding:25px 42px 30px;border-top:1px solid #233f51;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.button{display:inline-block;text-decoration:none;padding:12px 19px;background:#4ad9eb;color:#05202c;border-radius:5px;font-size:12px;font-weight:bold}.secondary{border:1px solid #35556b;background:transparent;color:#d9eaf5}.note{width:100%;font-size:10px;color:#91acbe;margin:3px 0 0}footer{display:flex;justify-content:space-between;gap:20px;padding:23px 0 32px;color:#829eb2;font-size:10px}a:focus-visible{outline:2px solid #4ad9eb;outline-offset:5px}@media(max-width:600px){header{padding:23px 0}.intro{padding:28px 23px 20px}.record{margin:0 23px;padding:20px}.record-top{align-items:flex-start;flex-direction:column;gap:9px}.journey{padding:26px 23px}ol{grid-template-columns:1fr;gap:15px}.actions{padding:23px}footer{flex-direction:column;gap:5px}.button{width:100%;text-align:center}}
 </style></head><body><header><span class="mark">JEBG</span><div class="brand">AI TECHNOLOGIES<small>INDUSTRIAL &amp; BUSINESS SOLUTIONS</small></div></header><main><article class="card"><div class="intro"><div class="icon" aria-hidden="true">${icon}</div><div class="eyebrow">${saved ? 'Submission confirmed' : 'Action needed'}</div><h1>${title}</h1><p>${escape_(message)}</p></div>${record}${journey}<div class="actions"><a class="button" href="${JEBG_CONFIG.website}">Return to JEBG website &rarr;</a><a class="button secondary" href="mailto:${JEBG_CONFIG.contact}">Contact our team</a><p class="note">${saved ? escape_(notificationReceiptNote_(details)) : 'If you need help, contact our team. No acknowledgement email has been sent.'}</p></div></article></main><footer><span>&copy; 2026 JEBG / Jamila Exim</span><span>Submission service &middot; v${JEBG_CONFIG.version}</span></footer></body></html>`;

@@ -33,8 +33,8 @@ function create(options={}){
 async function run(options={}){const f=create(options);await f.ready;await f.flush();return f;}
 (async()=>{
  const markup=html.slice(html.indexOf('<div class="footer-metrics"'),html.indexOf('</footer>',html.indexOf('<div class="footer-metrics"')));
- const cells=[...markup.matchAll(/<div class="activity-cell">(<span[^>]*>[\s\S]*?<\/span>)<small>([^<]+)<\/small><\/div>/g)];
- check('CMS-style heading, launch date and eight labelled figures',markup.includes('Website activity')&&markup.includes('Since 7 Nov 2026')&&cells.length===8&&cells.every(m=>m[1].replace(/<[^>]*>/g,'')==='0')&&JSON.stringify(cells.map(m=>m[2]))===JSON.stringify(['Visits','Daily average','Customer starts','Customer rate','Developer starts','Developer rate','Engaged visits','Engagement rate']));
+ const cells=[...markup.matchAll(/<div class="activity-cell">(<span[^>]*>[\s\S]*?<\/span>)<\/div>/g)];
+ check('eight number-only figures without visible heading labels or date',!markup.includes('Website activity')&&!markup.includes('Since 7 Nov 2026')&&!markup.includes('<small>')&&cells.length===8&&cells.every(m=>m[1].replace(/<[^>]*>/g,'')==='0'));
  check('exact requested DOM order',JSON.stringify([...markup.matchAll(/<span id="([^"]+)"/g)].map(m=>m[1]))===JSON.stringify(['metric-visits','metric-daily','metric-customer-starts','metric-customer-rate','metric-developer-starts','metric-developer-rate','metric-engaged','metric-engagement-rate']));
  check('no confirmed-submission counters',!html.includes('metric-customers')&&!html.includes('metric-developers'));
  check('no Google statistics or visit calls',!html.includes('?page=stats')&&!html.includes('page_visit')&&!html.includes('jebgFooterStats'));
@@ -55,6 +55,7 @@ async function run(options={}){const f=create(options);await f.ready;await f.flu
   check('rate hover and screen-reader labels retain units',f.elements['metric-customer-rate'].title.includes('12 percent')&&f.elements['metric-customer-rate']['aria-label'].includes('12 percent'));
   check('rates require no additional requests',f.requests.length===4);
   check('valid figures reveal strip',!f.elements['footer-metrics'].hidden);
+  check('tooltips omit reference date',!f.elements['metric-visits'].title.includes('since 7'));
   check('tooltips and accessible names identify starts',f.elements['metric-customer-starts'].title.includes('form starts')&&f.elements['metric-engaged']['aria-label'].includes('75%'));
   check('timeouts cleared',f.cleared.length===4);
   f.emit('enquiry','input');await f.flush();check('customer typing counts one start',f.hits('customer').length===1&&f.elements['metric-customer-starts'].textContent==='4');

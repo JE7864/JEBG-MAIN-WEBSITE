@@ -43,7 +43,12 @@ check('admin launcher remains noindex',/<meta name="robots" content="noindex,nof
 check('crawler file does not block reading admin noindex',!/^Disallow: \/admin/m.test(robots));
 let executable=0;
 for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
- if(/\btype=["']application\/ld\+json["']/i.test(match[1]))JSON.parse(match[2]);else{new Function(match[2]);executable++;}
+ if(/\btype=["']application\/ld\+json["']/i.test(match[1]))JSON.parse(match[2]);
+ else if(/\bsrc=/.test(match[1])){
+  const src=match[1].match(/\bsrc=["']([^"']+)["']/)?.[1];
+  check('external script uses a local path',!!src&&/^\.\/js\/[A-Za-z0-9._-]+\.js$/.test(src));
+  new Function(fs.readFileSync(path.join(root,src),'utf8'));
+ }else{new Function(match[2]);executable++;}
 }
 check('structured data is not executable JavaScript',executable===1);
 console.log(reports.length+' SEO checks passed.');
